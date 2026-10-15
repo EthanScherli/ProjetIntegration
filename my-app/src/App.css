@@ -181,4 +181,72 @@
     right: 0;
     border-right-color: var(--border);
   }
+  /* Style global du conteneur d'inscription */
+.register-container {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  font-family: sans-serif;
+}
+
+.register-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+/* Style des champs du formulaire */
+.register-container form div {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.register-container label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #555;
+}
+
+.register-container input {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Style du bouton */
+.register-container button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.register-container button:hover {
+  background-color: #45a049;
+}
+
+/* --- (Format Téléphone) --- */
+/* Si l'écran fait moins de 600px de large */
+@media (max-width: 600px) {
+  .register-container {
+    margin: 1rem;
+    padding: 1.5rem;
+    box-shadow: none; /* Enlève l'ombre sur mobile pour faire plus plat */
+    border: 1px solid #eee;
+  }
+
+  .register-container h2 {
+    font-size: 1.5rem;
+  }
+}
 }
