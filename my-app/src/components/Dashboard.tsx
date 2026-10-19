@@ -57,18 +57,22 @@ const Dashboard = () => {
       <hr className="dashboard-divider" />
       
       <div className="dashboard-grid">
-        <div className="dashboard-card">T°</div>
-        <div className="dashboard-card">Humidité</div>
+        <div className="dashboard-card">
+          <p>Température </p>
+        </div>
+        <div className="dashboard-card">
+          <p>Humidité </p>
+        </div>
         
+        <div className="dashboard-card">
+          <p>Luminosité </p>
+        </div>
         <div className="dashboard-card">
           <span className="blue-link">Cam 1</span>
         </div>
-        <div className="dashboard-card">
-          <span className="blue-link">Cam 2</span>
-        </div>
         
-        <div className="dashboard-card full-width">Infos sur Python</div>
-        <div className="dashboard-card full-width">Historique</div>
+        <div className="dashboard-card full-width">Historiques capteurs</div>
+        <div className="dashboard-card full-width">Historique Images</div>
       </div>
     </div>
   );
