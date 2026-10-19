@@ -8,6 +8,10 @@ export default defineConfig({
     // Forward /api calls to the Express server during development
     proxy: { '/api': 'http://localhost:3000' },
   },
+  preview: {
+    // Same for `npm run preview` (used to test the PWA)
+    proxy: { '/api': 'http://localhost:3000' },
+  },
   plugins: [
     react(),
     VitePWA({

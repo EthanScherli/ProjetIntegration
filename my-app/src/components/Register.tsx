@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 
 const Register = () => {
+  const [pseudo, setPseudo] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -26,36 +27,49 @@ const Register = () => {
     }
 
     try {
-      // TODO: Remplacer par l'appel API réel vers ton backend (ex: avec fetch ou axios)
-      /*
-      const response = await fetch('http://localhost:3000/api/register', {
+      // Appel au backend (le proxy Vite redirige /api vers le serveur Express)
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ pseudo, mail: email, mdp: password }),
       });
-      
-      if (!response.ok) throw new Error("Erreur lors de l'inscription");
-      */
 
-      // Simulation de succès
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setError(data.error ?? "Erreur lors de l'inscription.");
+        return;
+      }
+
       setSuccess('Inscription réussie ! Vous pouvez maintenant vous connecter.');
+      setPseudo('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
-      
+
     } catch (err) {
-      setError('Une erreur est survenue lors de la création du compte.');
+      setError('Impossible de joindre le serveur.');
     }
   };
 
   return (
     <div className="register-container">
       <h2>Créer un compte Vivarium</h2>
-      
+
       {error && <div style={{ color: 'red' }}>{error}</div>}
       {success && <div style={{ color: 'green' }}>{success}</div>}
 
       <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="pseudo">Pseudo :</label>
+          <input
+            type="text"
+            id="pseudo"
+            value={pseudo}
+            onChange={(e) => setPseudo(e.target.value)}
+            required
+          />
+        </div>
+
         <div>
           <label htmlFor="email">Adresse Email :</label>
           <input

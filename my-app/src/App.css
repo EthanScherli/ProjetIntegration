@@ -125,3 +125,56 @@
   color: #2f7de1;
   text-decoration: underline;
 }
+
+/* Liste des utilisateurs (admin) */
+.users-container h2 {
+  margin: 1rem 0 0.5rem;
+  text-align: center;
+}
+
+.users-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-card {
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.user-pseudo {
+  font-weight: 600;
+}
+
+.user-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #2f7de1;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.user-mail {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.user-date {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
