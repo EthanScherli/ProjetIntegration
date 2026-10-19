@@ -1,101 +1,24 @@
-.app {
+.app-wrapper {
   max-width: 480px;
   margin: 0 auto;
-  padding: 32px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  padding: 16px;
 }
 
-.app-header {
-  text-align: center;
-}
-
-.app-logo {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-}
-
-.app-header h1 {
-  margin: 12px 0 4px;
-  font-size: 1.75rem;
-}
-
-.subtitle {
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-}
-
-.card h2 {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 16px;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-.status-ok .dot {
-  background: #22a55a;
-}
-
-.status-error .dot {
-  background: #d93838;
-}
-
-button {
+/* Bouton texte (liens « m'inscrire », « retour », « déconnexion ») */
+.link-button {
+  display: block;
   width: 100%;
-<<<<<<< HEAD
-  padding: 12px;
-  font: inherit;
-  font-weight: 600;
-  color: #fff;
-  background: var(--accent);
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: none;
   border: none;
-  border-radius: 12px;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
   cursor: pointer;
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-=======
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-  /* Style global du conteneur d'inscription */
+/* Style global du conteneur d'inscription */
 .register-container {
   max-width: 400px;
   margin: 2rem auto;
@@ -133,7 +56,7 @@ button:disabled {
 }
 
 /* Style du bouton */
-.register-container button {
+.register-container button[type='submit'] {
   width: 100%;
   padding: 0.75rem;
   background-color: #4CAF50;
@@ -145,7 +68,7 @@ button:disabled {
   margin-top: 1rem;
 }
 
-.register-container button:hover {
+.register-container button[type='submit']:hover {
   background-color: #45a049;
 }
 
@@ -163,5 +86,42 @@ button:disabled {
     font-size: 1.5rem;
   }
 }
->>>>>>> 45d4dc2a6ae9e1992796e49e866d7b7bc98075ba
+
+/* Tableau de bord */
+.dashboard-container h2 {
+  margin: 1rem 0 0.5rem;
+  text-align: center;
+}
+
+.dashboard-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dashboard-card {
+  min-height: 80px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.dashboard-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.blue-link {
+  color: #2f7de1;
+  text-decoration: underline;
 }
