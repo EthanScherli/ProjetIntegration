@@ -34,10 +34,11 @@ const Login = ({ onLogin, onNavigateRegister }: LoginProps) => {
   };
 
   return (
+    
     <div className="register-container">
       <h2>Connexion au Vivarium</h2>
 
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+      {error && <div className='msgErreur'></div>}
 
       <form onSubmit={handleSubmit}>
         <div>
