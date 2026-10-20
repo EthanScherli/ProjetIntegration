@@ -26,15 +26,17 @@ const Users = () => {
 
   return (
     <div className="users-container">
-      <h2>Utilisateurs {!loading && !error && `(${users.length})`}</h2>
-      <hr className="dashboard-divider" />
+      <header className="screen-header">
+        <span className="screen-tag">// Effectifs {!loading && !error && `(${users.length})`}</span>
+        <h2>Utilisateurs</h2>
+      </header>
 
-      {loading && <p>Chargement…</p>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+      {loading && <p className="empty-state">Chargement…</p>}
+      {error && <div className="msg msg-error">{error}</div>}
 
       <ul className="users-list">
         {users.map((user) => (
-          <li key={user.id} className="user-card">
+          <li key={user.id} className="user-card bracket">
             <div className="user-card-header">
               <span className="user-pseudo">{user.pseudo}</span>
               {user.isAdmin && <span className="user-badge">Admin</span>}

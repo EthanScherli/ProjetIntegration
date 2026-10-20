@@ -1,30 +1,247 @@
 :root {
-  --text: #1c1b22;
-  --text-muted: #6b6375;
-  --bg: #f6f5f8;
-  --surface: #fff;
-  --border: #e5e4e7;
-  --accent: #7c2fd6;
+  --bg: #12160f;
+  --surface: #1b2116;
+  --surface-2: #232b1c;
+  --border: #3a4430;
+  --text: #d8d2b8;
+  --text-muted: #8a8a6e;
+  --accent: #6b7535;
+  --accent-text: #12160f;
+  --live: #9fd356;
+  --warn: #d9a441;
+  --danger: #c4573c;
+  --leaf: #55602a;
+  --vine-opacity: 0.5;
+  --snake-opacity: 0.16;
+  --scanlines: 0.035;
 
-  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: light dark;
+  --font-display: 'Saira Stencil One', Impact, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, Consolas, monospace;
+
+  --radius: 2px;
+  --corner: 10px;
+
+  font: 16px/1.5 var(--font-mono);
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --text: #f3f4f6;
-    --text-muted: #9ca3af;
-    --bg: #16171d;
-    --surface: #1f2028;
-    --border: #2e303a;
-    --accent: #a960f5;
+    --bg: #e2dcc4;
+    --surface: #ece7d3;
+    --surface-2: #e5dfc8;
+    --border: #b9b292;
+    --text: #1d2318;
+    --text-muted: #5f6148;
+    --accent: #4b5320;
+    --accent-text: #ece7d3;
+    --live: #3f6e1f;
+    --warn: #9a6a12;
+    --danger: #a3381f;
+    --leaf: #4b5320;
+    --vine-opacity: 0.35;
+    --snake-opacity: 0.12;
+    --scanlines: 0;
+
+    color-scheme: light;
   }
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
+}
+
+.jungle {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.jungle-snake {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(85vw, 560px);
+  color: var(--accent);
+  opacity: var(--snake-opacity);
+  transform: translate(
+    calc(-50% - var(--px, 0) * 14px),
+    calc(-50% - var(--py, 0) * 14px)
+  );
+  transition: transform 0.4s ease-out;
+}
+
+.jungle-snake svg {
+  display: block;
+  width: 100%;
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.snake-ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.snake-ring-thin {
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin 90s linear infinite;
+}
+
+.snake-body {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.snake-scales {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 6;
+  stroke-dasharray: 3 5;
+  opacity: 0.6;
+  animation: slither 4s linear infinite;
+}
+
+.snake-fill {
+  fill: currentColor;
+}
+
+.snake-eye {
+  fill: var(--bg);
+}
+
+.snake-tongue {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: flick 5s ease-in-out infinite;
+}
+
+.jungle-vines {
+  position: absolute;
+  inset: 0;
+  color: var(--leaf);
+  opacity: var(--vine-opacity);
+  transform: translate(calc(var(--px, 0) * 6px), calc(var(--py, 0) * 6px));
+  transition: transform 0.4s ease-out;
+}
+
+.vine {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: clamp(70px, 12vw, 140px);
+}
+
+.vine-left {
+  left: 0;
+}
+
+.vine-right {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.vine-stem {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+.leaf {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: sway 6s ease-in-out infinite alternate;
+}
+
+.leaf.rustle {
+  animation: rustle 0.7s ease-out;
+}
+
+.leaf-rib {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.2;
+  opacity: 0.5;
+}
+
+@keyframes breathe {
+  50% { transform: scale(1.02); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slither {
+  to { stroke-dashoffset: -16; }
+}
+
+@keyframes flick {
+  0%, 86%, 100% { transform: scaleX(0); }
+  89%, 95% { transform: scaleX(1); }
+  92% { transform: scaleX(0.6); }
+}
+
+@keyframes sway {
+  from { transform: rotate(-5deg); }
+  to { transform: rotate(5deg); }
+}
+
+@keyframes rustle {
+  20% { transform: rotate(18deg); }
+  45% { transform: rotate(-12deg); }
+  70% { transform: rotate(6deg); }
+  100% { transform: rotate(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--scanlines)) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+::selection {
+  background: var(--live);
+  color: var(--bg);
 }

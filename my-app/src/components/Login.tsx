@@ -28,21 +28,24 @@ const Login = ({ onLogin, onNavigateRegister }: LoginProps) => {
       }
 
       onLogin();
-    } catch (err) {
+    } catch {
       setError('Impossible de joindre le serveur.');
     }
   };
 
   return (
     
-    <div className="register-container">
-      <h2>Connexion au Vivarium</h2>
+    <div className="panel bracket">
+      <header className="screen-header">
+        <span className="screen-tag">// Identification requise</span>
+        <h2>Vivarium</h2>
+      </header>
 
-      {error && <div className='msgErreur'></div>}
+      {error && <div className="msg msg-error">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="login-email">Adresse Email :</label>
+          <label className="label" htmlFor="login-email">Adresse email</label>
           <input
             type="email"
             id="login-email"
@@ -52,7 +55,7 @@ const Login = ({ onLogin, onNavigateRegister }: LoginProps) => {
           />
         </div>
         <div>
-          <label htmlFor="login-password">Mot de passe :</label>
+          <label className="label" htmlFor="login-password">Mot de passe</label>
           <input
             type="password"
             id="login-password"
@@ -61,7 +64,7 @@ const Login = ({ onLogin, onNavigateRegister }: LoginProps) => {
             required
           />
         </div>
-        <button type="submit">Se connecter</button>
+        <button className="btn" type="submit">Se connecter</button>
       </form>
 
       <button className="link-button" onClick={onNavigateRegister}>

@@ -4,6 +4,7 @@ import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Users from './components/Users';
+import Jungle from './components/Jungle';
 
 interface CurrentUser {
   id: string;
@@ -38,6 +39,8 @@ function App() {
 
   return (
     <div className="app-wrapper">
+      <Jungle />
+      <div className="screen" key={currentView}>
       {currentView === 'login' && (
         <Login
           onLogin={loadCurrentUser}
@@ -76,6 +79,7 @@ function App() {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

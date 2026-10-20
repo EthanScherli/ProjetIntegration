@@ -21,8 +21,8 @@ export default defineConfig({
         name: 'Projet Intégration',
         short_name: 'Projet',
         description: 'Projet Intégration',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        theme_color: '#12160f',
+        background_color: '#12160f',
         display: 'standalone',
         start_url: '/',
         icons: [

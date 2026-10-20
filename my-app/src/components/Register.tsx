@@ -43,21 +43,24 @@ const Register = () => {
       setPassword('');
       setConfirmPassword('');
 
-    } catch (err) {
+    } catch {
       setError('Impossible de joindre le serveur.');
     }
   };
 
   return (
-    <div className="register-container">
-      <h2>Créer un compte Vivarium</h2>
+    <div className="panel bracket">
+      <header className="screen-header">
+        <span className="screen-tag">// Nouvelle recrue</span>
+        <h2>Créer un compte</h2>
+      </header>
 
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      {success && <div style={{ color: 'green' }}>{success}</div>}
+      {error && <div className="msg msg-error">{error}</div>}
+      {success && <div className="msg msg-success">{success}</div>}
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="pseudo">Pseudo :</label>
+          <label className="label" htmlFor="pseudo">Pseudo</label>
           <input
             type="text"
             id="pseudo"
@@ -68,7 +71,7 @@ const Register = () => {
         </div>
 
         <div>
-          <label htmlFor="email">Adresse Email :</label>
+          <label className="label" htmlFor="email">Adresse email</label>
           <input
             type="email"
             id="email"
@@ -79,7 +82,7 @@ const Register = () => {
         </div>
 
         <div>
-          <label htmlFor="password">Mot de passe :</label>
+          <label className="label" htmlFor="password">Mot de passe</label>
           <input
             type="password"
             id="password"
@@ -90,7 +93,7 @@ const Register = () => {
         </div>
 
         <div>
-          <label htmlFor="confirmPassword">Confirmer le mot de passe :</label>
+          <label className="label" htmlFor="confirmPassword">Confirmer le mot de passe</label>
           <input
             type="password"
             id="confirmPassword"
@@ -100,7 +103,7 @@ const Register = () => {
           />
         </div>
 
-        <button type="submit">S'inscrire</button>
+        <button className="btn" type="submit">S'inscrire</button>
       </form>
     </div>
   );
