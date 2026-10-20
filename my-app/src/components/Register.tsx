@@ -14,20 +14,17 @@ const Register = () => {
     setError('');
     setSuccess('');
 
-    // Validation des mots de passe
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas.');
       return;
     }
 
-    // Validation basique du mot de passe (optionnel mais recommandé)
     if (password.length < 6) {
       setError('Le mot de passe doit contenir au moins 6 caractères.');
       return;
     }
 
     try {
-      // Appel au backend (le proxy Vite redirige /api vers le serveur Express)
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

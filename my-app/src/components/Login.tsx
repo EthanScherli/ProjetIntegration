@@ -15,7 +15,6 @@ const Login = ({ onLogin, onNavigateRegister }: LoginProps) => {
     setError('');
 
     try {
-      // Le serveur vérifie le mot de passe et pose un cookie de session
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,7 +63,6 @@ const Login = ({ onLogin, onNavigateRegister }: LoginProps) => {
         <button type="submit">Se connecter</button>
       </form>
 
-      {/* Bouton pour aller vers la page d'inscription */}
       <button className="link-button" onClick={onNavigateRegister}>
         Je n'ai pas de compte, m'inscrire
       </button>

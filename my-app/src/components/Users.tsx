@@ -14,7 +14,6 @@ const Users = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Le serveur vérifie que l'utilisateur connecté est bien admin
     fetch('/api/users')
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));

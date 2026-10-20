@@ -4,7 +4,6 @@
   padding: 16px;
 }
 
-/* Bouton texte (liens « m'inscrire », « retour », « déconnexion ») */
 .link-button {
   display: block;
   width: 100%;
@@ -18,7 +17,6 @@
   cursor: pointer;
 }
 
-/* Style global du conteneur d'inscription */
 .register-container {
   max-width: 400px;
   margin: 2rem auto;
@@ -35,7 +33,6 @@
   margin-bottom: 1.5rem;
 }
 
-/* Style des champs du formulaire */
 .register-container form div {
   margin-bottom: 1rem;
   display: flex;
@@ -55,7 +52,6 @@
   font-size: 1rem;
 }
 
-/* Style du bouton */
 .register-container button[type='submit'] {
   width: 100%;
   padding: 0.75rem;
@@ -72,13 +68,11 @@
   background-color: #45a049;
 }
 
-/* --- (Format Téléphone) --- */
-/* Si l'écran fait moins de 600px de large */
 @media (max-width: 600px) {
   .register-container {
     margin: 1rem;
     padding: 1.5rem;
-    box-shadow: none; /* Enlève l'ombre sur mobile pour faire plus plat */
+    box-shadow: none;
     border: 1px solid #eee;
   }
 
@@ -87,7 +81,6 @@
   }
 }
 
-/* Tableau de bord */
 .dashboard-container h2 {
   margin: 1rem 0 0.5rem;
   text-align: center;
@@ -126,7 +119,6 @@
   text-decoration: underline;
 }
 
-/* Liste des utilisateurs (admin) */
 .users-container h2 {
   margin: 1rem 0 0.5rem;
   text-align: center;

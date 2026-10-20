@@ -2,21 +2,16 @@
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
   server: {
-    // Forward /api calls to the Express server during development
     proxy: { '/api': 'http://localhost:3000' },
   },
   preview: {
-    // Same for `npm run preview` (used to test the PWA)
     proxy: { '/api': 'http://localhost:3000' },
   },
   plugins: [
     react(),
     VitePWA({
-      // injectManifest: our own src/sw.ts, because generateSW breaks on the
-      // apostrophe in the project folder path ("projet d'intégration").
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',

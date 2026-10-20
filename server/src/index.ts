@@ -16,7 +16,6 @@ app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Le serveur ne sert que l'API : on renvoie vers l'app React si on ouvre la racine
 app.get("/", (_req, res) => {
   res.redirect(process.env.CLIENT_URL ?? "http://localhost:5173");
 });
@@ -30,7 +29,6 @@ app.get("/api/db-check", async (_req, res) => {
   res.json(result.rows[0]);
 });
 
-// Crée le cookie de session (httpOnly : inaccessible au JavaScript du navigateur)
 function setSessionCookie(res: express.Response, userId: string) {
   const token = jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: `${SESSION_DAYS}d` });
   res.cookie(COOKIE_NAME, token, {
@@ -52,7 +50,6 @@ app.post("/api/register", async (req, res) => {
   }
 
   try {
-    // On ne stocke jamais le mot de passe en clair
     const hash = await bcrypt.hash(mdp, 10);
     const result = await pool.query(
       'insert into "Utilisateurs" (pseudo, mail, mdp) values ($1, $2, $3) returning "id_Ut", pseudo, mail',
@@ -62,7 +59,6 @@ app.post("/api/register", async (req, res) => {
     setSessionCookie(res, user.id_Ut);
     res.status(201).json({ id: user.id_Ut, pseudo: user.pseudo, mail: user.mail });
   } catch (err: any) {
-    // 23505 = violation d'une contrainte UNIQUE (pseudo ou mail déjà pris)
     if (err.code === "23505") {
       const champ = String(err.constraint).includes("pseudo") ? "Ce pseudo" : "Cet email";
       return res.status(409).json({ error: `${champ} est déjà utilisé.` });
@@ -84,7 +80,6 @@ app.post("/api/login", async (req, res) => {
       [mail.trim().toLowerCase()],
     );
     const user = result.rows[0];
-    // Même message que l'email existe ou non, pour ne pas révéler les comptes existants
     if (!user || !(await bcrypt.compare(mdp, user.mdp))) {
       return res.status(401).json({ error: "Email ou mot de passe incorrect." });
     }
@@ -96,7 +91,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Lit l'id de l'utilisateur dans le cookie de session (null si absent ou invalide)
 function getSessionUserId(req: express.Request): string | null {
   try {
     const { id } = jwt.verify(req.cookies[COOKIE_NAME], JWT_SECRET) as { id: string };
@@ -111,7 +105,6 @@ async function isAdmin(userId: string) {
   return result.rowCount! > 0;
 }
 
-// Bloque la route si l'utilisateur n'est pas connecté (401) ou pas dans la table Admin (403)
 async function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = getSessionUserId(req);
   if (!userId) return res.status(401).json({ error: "Non connecté." });
@@ -124,7 +117,6 @@ async function requireAdmin(req: express.Request, res: express.Response, next: e
   }
 }
 
-// Renvoie l'utilisateur connecté (sert à rester connecté après un rechargement)
 app.get("/api/me", async (req, res) => {
   const userId = getSessionUserId(req);
   if (!userId) return res.status(401).json({ error: "Non connecté." });
@@ -139,7 +131,6 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
-// Liste des utilisateurs (admins uniquement) — le mot de passe n'est jamais renvoyé
 app.get("/api/users", requireAdmin, async (_req, res) => {
   try {
     const result = await pool.query(

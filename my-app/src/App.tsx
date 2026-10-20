@@ -13,11 +13,9 @@ interface CurrentUser {
 }
 
 function App() {
-  // Par défaut, on affiche la page de login ('login', 'register', 'dashboard' ou 'users')
   const [currentView, setCurrentView] = useState('login');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  // Récupère l'utilisateur connecté (et s'il est admin) à partir du cookie de session
   const loadCurrentUser = async () => {
     try {
       const response = await fetch('/api/me');
@@ -25,11 +23,9 @@ function App() {
       setCurrentUser(await response.json());
       setCurrentView('dashboard');
     } catch {
-      // Serveur injoignable : on reste sur la page de connexion
     }
   };
 
-  // Si un cookie de session valide existe déjà, on va directement au tableau de bord
   useEffect(() => {
     loadCurrentUser();
   }, []);
