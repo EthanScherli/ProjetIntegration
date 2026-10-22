@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import AccountManager from './AccountManager';
 
 interface Capteur {
   id_mesure: number;
@@ -62,6 +63,9 @@ const SensorCard = ({ label, unite, valeur, plage }: SensorCardProps) => {
 };
 
 const Dashboard = () => {
+  // État pour afficher la gestion du compte
+  const [showAccount, setShowAccount] = useState(false);
+  
   const [capteurs, setCapteurs] = useState<Capteur[]>([]);
   const [images, setImages] = useState<ImageHistorique[]>([]);
   const [error, setError] = useState('');
@@ -99,6 +103,11 @@ const Dashboard = () => {
     return () => clearInterval(interval)
   }, []);
 
+  // Si on clique sur le bouton, on affiche le composant de gestion de compte
+  if (showAccount) {
+    return <AccountManager onClose={() => setShowAccount(false)} />;
+  }
+
   const derniere = capteurs.reduce<Capteur | undefined>(
     (max, c) => (!max || c.id_mesure > max.id_mesure ? c : max),
     undefined,
@@ -112,46 +121,52 @@ const Dashboard = () => {
     : null;
 
   return (
-    <div className="dashboard-container">
-      <header className="screen-header">
-        <span className="screen-tag">// Vivarium-01</span>
-        <h2>Surveillance</h2>
-      </header>
+    <>
+      <button className="account-btn" onClick={() => setShowAccount(true)}>
+        Gestion du compte
+      </button>
 
-      {error && <div className="msg msg-error">{error}</div>}
+      <div className="dashboard-container">
+        <header className="screen-header">
+          <span className="screen-tag">// Vivarium-01</span>
+          <h2>Surveillance</h2>
+        </header>
 
-      <section className="comfort bracket">
-        <span className="label">Indice de confort</span>
-        <span className="comfort-value" key={confort ?? 'off'}>
-          {confort ?? '--'}<small>%</small>
-        </span>
-      </section>
+        {error && <div className="msg msg-error">{error}</div>}
 
-      <div className="dashboard-grid">
-        <SensorCard label="Temp" unite="°C" valeur={derniere?.temperature} plage={PLAGES.temperature} />
-        <SensorCard label="Humidité" unite="%" valeur={derniere?.humidite} plage={PLAGES.humidite} />
-        <SensorCard label="Lumière" unite="%" valeur={derniere?.luminosite} plage={PLAGES.luminosite} />
-
-        <div className="dashboard-card bracket cam-card">
-          <span className="cam-scan" />
-          <span className="label"><span className="rec-dot" /> Cam 01</span>
-          <span className="label status-off blink">Pas de signal</span>
-        </div>
-
-        <div className="dashboard-card bracket full-width">
-          <span className="label">Historique capteurs</span>
-          <span className="empty-state">
-            {capteurs.length ? `${capteurs.length} mesures enregistrées` : 'Aucune donnée'}
+        <section className="comfort bracket">
+          <span className="label">Indice de confort</span>
+          <span className="comfort-value" key={confort ?? 'off'}>
+            {confort ?? '--'}<small>%</small>
           </span>
-        </div>
-        <div className="dashboard-card bracket full-width">
-          <span className="label">Historique images</span>
-          <span className="empty-state">
-            {images.length ? `${images.length} images enregistrées` : 'Aucune donnée'}
-          </span>
+        </section>
+
+        <div className="dashboard-grid">
+          <SensorCard label="Temp" unite="°C" valeur={derniere?.temperature} plage={PLAGES.temperature} />
+          <SensorCard label="Humidité" unite="%" valeur={derniere?.humidite} plage={PLAGES.humidite} />
+          <SensorCard label="Lumière" unite="%" valeur={derniere?.luminosite} plage={PLAGES.luminosite} />
+
+          <div className="dashboard-card bracket cam-card">
+            <span className="cam-scan" />
+            <span className="label"><span className="rec-dot" /> Cam 01</span>
+            <span className="label status-off blink">Pas de signal</span>
+          </div>
+
+          <div className="dashboard-card bracket full-width">
+            <span className="label">Historique capteurs</span>
+            <span className="empty-state">
+              {capteurs.length ? `${capteurs.length} mesures enregistrées` : 'Aucune donnée'}
+            </span>
+          </div>
+          <div className="dashboard-card bracket full-width">
+            <span className="label">Historique images</span>
+            <span className="empty-state">
+              {images.length ? `${images.length} images enregistrées` : 'Aucune donnée'}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
