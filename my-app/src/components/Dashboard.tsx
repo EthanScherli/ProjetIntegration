@@ -1,4 +1,15 @@
+
 import { useEffect, useState, type CSSProperties } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import AccountManager from './AccountManager';
 
 interface Capteur {
@@ -6,6 +17,7 @@ interface Capteur {
   temperature: number | null;
   humidite: number | null;
   luminosite: number | null;
+  created_at: string;
 }
 
 interface ImageHistorique {
@@ -63,33 +75,56 @@ const SensorCard = ({ label, unite, valeur, plage }: SensorCardProps) => {
 };
 
 const Dashboard = () => {
-  // État pour afficher la gestion du compte
   const [showAccount, setShowAccount] = useState(false);
-  
+
   const [capteurs, setCapteurs] = useState<Capteur[]>([]);
   const [images, setImages] = useState<ImageHistorique[]>([]);
   const [error, setError] = useState('');
+  const [periode, setPeriode] = useState<'24h' | 'week'>('24h');
 
-  //Recup donnees
-  const recupDashboardData = async () => {
-    setError('');
+  // Récupération des capteurs selon la période choisie
+  useEffect(() => {
+    const recupCapteurs = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/donnees-capteurs/${periode}`,
+          {
+            credentials: 'include',
+          }
+        );
 
-    try{
-      const reponseCapteurs = await fetch('/api/donnees-capteurs');
-      if (!reponseCapteurs.ok) {
-        const data = await reponseCapteurs.json().catch(() => ({}));
-        setError(data.error ?? "Erreur lors du chargement des capteurs");
-        return;
+        if (!response.ok) {
+          throw new Error('Erreur lors de la récupération des capteurs');
+        }
+
+        const data: Capteur[] = await response.json();
+
+        setCapteurs(data);
+        setError('');
+      } catch (err) {
+        console.error(err);
+        setError('Impossible de récupérer les données des capteurs.');
       }
-      const capteursData = await reponseCapteurs.json();
-      setCapteurs(capteursData);
+    };
 
+    recupCapteurs();
+
+    const interval = setInterval(recupCapteurs, 3000);
+
+    return () => clearInterval(interval);
+  }, [periode]);
+
+  // Récupération des images : fonctionnement conservé
+  const recupCam = async () => {
+    try {
       const reponseImages = await fetch('/api/historique-images');
+
       if (!reponseImages.ok) {
         const data = await reponseImages.json().catch(() => ({}));
         setError(data.error ?? ("Erreur lors du chargement de l'historique des images"));
         return;
       }
+
       const imagesData = await reponseImages.json();
       setImages(imagesData);
     }catch {
@@ -98,27 +133,43 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    recupDashboardData();
-    const interval = setInterval(recupDashboardData, 3000);
-    return () => clearInterval(interval)
+    recupCam();
+
+    const interval = setInterval(recupCam, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  // Si on clique sur le bouton, on affiche le composant de gestion de compte
+  // Affichage de la gestion du compte
   if (showAccount) {
     return <AccountManager onClose={() => setShowAccount(false)} />;
   }
 
+  // Dernière mesure
   const derniere = capteurs.reduce<Capteur | undefined>(
     (max, c) => (!max || c.id_mesure > max.id_mesure ? c : max),
-    undefined,
+    undefined
   );
 
+  // Calcul du confort
   const scores = (Object.keys(PLAGES) as (keyof typeof PLAGES)[])
     .filter((cle) => derniere?.[cle] != null)
     .map((cle) => scoreConfort(derniere![cle]!, PLAGES[cle]));
+
   const confort = scores.length
     ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
     : null;
+
+  // Préparation des données du graphique
+  const donneesGraphique = capteurs
+    .filter((c) => c.created_at && !isNaN(new Date(c.created_at).getTime()))
+    .map((c) => ({
+      date: new Date(c.created_at).getTime(),
+      temperature: c.temperature,
+      humidite: c.humidite,
+      luminosite: c.luminosite,
+    }))
+    .sort((a, b) => a.date - b.date);
 
   return (
     <>
@@ -142,26 +193,124 @@ const Dashboard = () => {
         </section>
 
         <div className="dashboard-grid">
-          <SensorCard label="Temp" unite="°C" valeur={derniere?.temperature} plage={PLAGES.temperature} />
-          <SensorCard label="Humidité" unite="%" valeur={derniere?.humidite} plage={PLAGES.humidite} />
-          <SensorCard label="Lumière" unite="%" valeur={derniere?.luminosite} plage={PLAGES.luminosite} />
+          <SensorCard
+            label="Temp"
+            unite="°C"
+            valeur={derniere?.temperature}
+            plage={PLAGES.temperature}
+          />
+
+          <SensorCard
+            label="Humidité"
+            unite="%"
+            valeur={derniere?.humidite}
+            plage={PLAGES.humidite}
+          />
+
+          <SensorCard
+            label="Lumière"
+            unite="%"
+            valeur={derniere?.luminosite}
+            plage={PLAGES.luminosite}
+          />
 
           <div className="dashboard-card bracket cam-card">
             <span className="cam-scan" />
-            <span className="label"><span className="rec-dot" /> Cam 01</span>
+            <span className="label">
+              <span className="rec-dot" /> Cam 01
+            </span>
             <span className="label status-off blink">Pas de signal</span>
           </div>
 
-          <div className="dashboard-card bracket full-width">
-            <span className="label">Historique capteurs</span>
-            <span className="empty-state">
-              {capteurs.length ? `${capteurs.length} mesures enregistrées` : 'Aucune donnée'}
-            </span>
+          {/* Historique des données : graphique */}
+          <div className="climate-chart">
+            <h2>Historique des données</h2>
+
+            <div className="chart-period-buttons">
+              <button
+                className={periode === '24h' ? 'active' : ''}
+                onClick={() => setPeriode('24h')}
+              >
+                Dernières 24 heures
+              </button>
+
+              <button
+                className={periode === 'week' ? 'active' : ''}
+                onClick={() => setPeriode('week')}
+              >
+                7 derniers jours
+              </button>
+            </div>
+
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={donneesGraphique}>
+                  <CartesianGrid strokeDasharray="3 3" />
+
+                  <XAxis
+                    dataKey="date"
+                    type="number"
+                    scale="time"
+                    domain={['dataMin', 'dataMax']}
+                    tickFormatter={(timestamp) =>
+                      new Date(timestamp).toLocaleString('fr-BE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    }
+                  />
+
+                  <YAxis />
+
+                  <Tooltip
+                    labelFormatter={(timestamp) =>
+                      new Date(Number(timestamp)).toLocaleString('fr-BE')
+                    }
+                  />
+
+                  <Legend />
+
+                  <Line
+                    type="monotone"
+                    dataKey="temperature"
+                    name="Température (°C)"
+                    stroke="#ff7300"
+                    connectNulls
+                    dot={false}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="humidite"
+                    name="Humidité (%)"
+                    stroke="#0088fe"
+                    connectNulls
+                    dot={false}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="luminosite"
+                    name="Luminosité (%)"
+                    stroke="#00c49f"
+                    connectNulls
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+
+          {/* Historique images : conservé */}
           <div className="dashboard-card bracket full-width">
             <span className="label">Historique images</span>
+
             <span className="empty-state">
-              {images.length ? `${images.length} images enregistrées` : 'Aucune donnée'}
+              {images.length
+                ? `${images.length} images enregistrées`
+                : 'Aucune donnée'}
             </span>
           </div>
         </div>

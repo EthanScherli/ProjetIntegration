@@ -234,13 +234,53 @@ app.get("/api/family/members", async (req, res) => {
 });
 
 
-app.get("/api/donnees-capteurs", async (_req, res) => {
-  res.json([{
-    id_mesure: 1,
-    temperature: 26.5,
-    humidite: 70,
-    luminosite: 80
-  }]);
+app.get("/api/donnees-capteurs/24h", async (req, res) => {
+
+  const userId = getSessionUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ error: "Non connecté." });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT temperature, luminosite, humidite, created_at
+      FROM "Donnees_Capteurs"
+      WHERE "id_Ut" = $1
+      AND created_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY created_at ASC
+    `, [userId]);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
+});
+
+app.get("/api/donnees-capteurs/week", async (req, res) => {
+  const userId = getSessionUserId(req);
+
+  if (!userId) {
+    return res.status(401).json({ error: "Non connecté." });
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT temperature, luminosite, humidite, created_at
+      FROM "Donnees_Capteurs"
+      WHERE "id_Ut" = $1
+      AND created_at >= NOW() - INTERVAL '7 days'
+      ORDER BY created_at ASC
+    `, [userId]);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
 });
 
 app.get("/api/historique-images", async (_req, res) => {
