@@ -443,3 +443,11 @@
   from { top: 4px; }
   to { top: calc(100% - 6px); }
 }
+
+.mue-history-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+  max-height: 200px; /* Limite la hauteur */
+  overflow-y: auto;  /* Ajoute un scroll si ça dépasse */
+}
