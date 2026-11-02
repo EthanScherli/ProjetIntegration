@@ -249,3 +249,66 @@ app.post("/api/logout", (_req, res) => {
 app.listen(Number(process.env.PORT), () => {
   console.log(`API sur http://localhost:${process.env.PORT}`);
 });
+
+// ROUTES POUR LA MUE
+
+app.get("/api/mue/active", async (_req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM "Mue" WHERE "statut" = \'EN_COURS\' ORDER BY "date_debut" DESC LIMIT 1'
+    );
+    res.json(result.rows[0] ?? null);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors de la récupération de la mue." });
+  }
+});
+
+app.post("/api/mue/demarrer", async (req, res) => {
+  const userId = getSessionUserId(req);
+  try {
+    // Vérifier si une mue n'est pas déjà en cours
+    const activeRes = await pool.query(
+      'SELECT "id_mue" FROM "Mue" WHERE "statut" = \'EN_COURS\' LIMIT 1'
+    );
+    if (activeRes.rowCount! > 0) {
+      return res.status(400).json({ error: "Une mue est déjà en cours." });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO "Mue" ("date_debut", "statut", "id_Ut") VALUES (NOW(), \'EN_COURS\', $1) RETURNING *',
+      [userId ? Number(userId) : null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors du démarrage de la mue." });
+  }
+});
+
+app.post("/api/mue/terminer", async (req, res) => {
+  const { id_mue } = req.body ?? {};
+  try {
+    let result;
+    if (id_mue) {
+      result = await pool.query(
+        'UPDATE "Mue" SET "date_fin" = NOW(), "statut" = \'TERMINEE\' WHERE "id_mue" = $1 RETURNING *',
+        [id_mue]
+      );
+    } else {
+      // Clôture automatique de la mue active s'il n'y a pas d'id transmis
+      result = await pool.query(
+        'UPDATE "Mue" SET "date_fin" = NOW(), "statut" = \'TERMINEE\' WHERE "statut" = \'EN_COURS\' RETURNING *'
+      );
+    }
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Aucune mue active à clôturer." });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors de la clôture de la mue." });
+  }
+});
