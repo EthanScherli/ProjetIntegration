@@ -22,6 +22,7 @@ export const SuiviMue = () => {
         return;
       }
       const data = await reponse.json();
+      console.log("test")
       setMueActive(data);
     } catch {
       setErreur('Impossible de contacter le serveur');
@@ -29,6 +30,9 @@ export const SuiviMue = () => {
       setChargement(false);
     }
   };
+  useEffect(() =>  {
+    chargerMueActive();
+  }, []);
 
   const demarrerMue = async () => {
     setChargement(true);
@@ -60,4 +64,35 @@ export const SuiviMue = () => {
       setChargement(false);
     }
   };
+
+  return (
+  <div className="dashboard-card bracket full-width">
+    <span className="label">Suivi de la Mue</span>
+
+    {erreur && <div className="msg msg-error">{erreur}</div>}
+
+    <div className="mue-container">
+      <div>
+        {mueActive ? (
+          <span className="status status-warn">
+            Mue en cours depuis le {new Date(mueActive.date_debut).toLocaleDateString('fr-FR')} à {new Date(mueActive.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        ) : (
+          <span className="status status-ok">Aucune mue en cours</span>
+        )}
+      </div>
+
+      {/* Bouton d'action dynamique (Déclarer / Terminer) */}
+      <button
+        className="account-btn mue-btn"
+        disabled={chargement}
+        onClick={mueActive ? terminerMue : demarrerMue}
+      >
+        {chargement ? 'Chargement...' : mueActive ? 'Terminer la mue' : 'Déclarer une mue'}
+      </button>
+    </div>
+  </div>
+);
 }
+
+export default SuiviMue;

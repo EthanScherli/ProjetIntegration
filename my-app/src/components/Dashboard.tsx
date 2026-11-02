@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import AccountManager from './AccountManager';
+import SuiviMue from './suiviMue';
 
 interface Capteur {
   id_mesure: number;
@@ -151,6 +152,8 @@ const Dashboard = () => {
             <span className="label"><span className="rec-dot" /> Cam 01</span>
             <span className="label status-off blink">Pas de signal</span>
           </div>
+
+          <SuiviMue />
 
           <div className="dashboard-card bracket full-width">
             <span className="label">Historique capteurs</span>
