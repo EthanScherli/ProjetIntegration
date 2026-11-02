@@ -203,6 +203,35 @@ app.post("/api/family/add", async (req, res) => {
   }
 });
 
+app.get("/api/family/members", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non connecté." });
+
+  try {
+    const famRes = await pool.query('SELECT "id_Famille" FROM "Famille" WHERE "id_Ut" = $1', [userId]);
+    if (famRes.rowCount === 0) return res.json([]);
+    
+    const idFamille = famRes.rows[0].id_Famille;
+
+    const membersRes = await pool.query(`
+      SELECT u.pseudo, f."Type_Membre"
+      FROM "Famille" f
+      JOIN "Utilisateurs" u ON f."id_Ut" = u."id_Ut"
+      WHERE f."id_Famille" = $1
+      ORDER BY f."Type_Membre" ASC
+    `, [idFamille]);
+
+    const members = membersRes.rows.map(row => ({
+      pseudo: row.pseudo,
+      isChef: row.Type_Membre === 1 || row.Type_Membre === '1'
+    }));
+
+    res.json(members);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
+});
 
 
 app.get("/api/donnees-capteurs", async (_req, res) => {
