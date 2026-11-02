@@ -24,4 +24,24 @@ export const SuiviMue = () => {
   useEffect(() => {
     chargerMueActive();
   }, []);
+  const demarrerMue = async () => {
+    setChargement(true);
+    const reponse = await fetch('/api/mue/demarrer', { method: 'POST' });
+    if (reponse.ok) {
+      await chargerMueActive();
+    }
+  };
+
+  const terminerMue = async () => {
+    if (!mueActive) return;
+    setChargement(true);
+    const reponse = await fetch('/api/mue/terminer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_mue: mueActive.id_mue }),
+    });
+    if (reponse.ok) {
+      await chargerMueActive();
+    }
+  };
 }
