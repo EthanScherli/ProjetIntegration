@@ -1,29 +1,37 @@
 import React, { useState, useEffect } from 'react';
 
+// Interface pour typer les membres de la famille
+interface FamilyMember {
+  pseudo: string;
+  isChef: boolean;
+}
+
 interface AccountManagerProps {
   onClose: () => void;
 }
 
 const AccountManager = ({ onClose }: AccountManagerProps) => {
-
   const [userInfo, setUserInfo] = useState<{ pseudo: string; mail: string; famille?: string } | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [newFamilyMember, setNewFamilyMember] = useState('');
   const [message, setMessage] = useState('');
 
-  //Récup des infos de l'utilisateur connecté
+  // Fonction pour récupérer les données de l'utilisateur ET de sa famille
+  const fetchUserAndFamily = async () => {
+    try {
+      const resUser = await fetch('/api/me');
+      if (resUser.ok) setUserInfo(await resUser.json());
+
+      const resFamily = await fetch('/api/family/members');
+      if (resFamily.ok) setFamilyMembers(await resFamily.json());
+    } catch (error) {
+      console.error("Erreur lors de la récupération des données");
+    }
+  };
+
+  // Chargement initial
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUserInfo(data);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération du compte");
-      }
-    };
-    fetchUser();
+    fetchUserAndFamily();
   }, []);
 
   // Fonction pour envoyer le pseudo au serveur
@@ -39,6 +47,8 @@ const AccountManager = ({ onClose }: AccountManagerProps) => {
       if (response.ok) {
         setMessage(`${newFamilyMember} a été ajouté à votre famille !`);
         setNewFamilyMember('');
+        // On rafraîchit la liste immédiatement après un ajout réussi
+        fetchUserAndFamily();
       } else {
         const data = await response.json().catch(() => ({}));
         setMessage(data.error ?? "Erreur lors de l'ajout.");
@@ -54,41 +64,67 @@ const AccountManager = ({ onClose }: AccountManagerProps) => {
         ← Retour au vivarium
       </button>
       
-      <h2>Gestion du compte</h2>
-      <hr className="dashboard-divider" />
+      <header className="screen-header">
+        <h2>Gestion du compte</h2>
+      </header>
 
-      {userInfo ? (
-        <div className="account-details">
-          <p><strong>Pseudo :</strong> {userInfo.pseudo}</p>
-          <p><strong>Email :</strong> {userInfo.mail}</p>
-          {userInfo.famille && (
-            <p><strong>Famille :</strong> Vous faites partie de la famille de {userInfo.famille}</p>
-          )}
+      {/* Informations de l'utilisateur */}
+      <div className="dashboard-card bracket">
+        {userInfo ? (
+          <div className="account-details">
+            <p><strong>Pseudo :</strong> <span className="user-pseudo">{userInfo.pseudo}</span></p>
+            <p><strong>Email :</strong> {userInfo.mail}</p>
+          </div>
+        ) : (
+          <p className="empty-state">Chargement des informations...</p>
+        )}
+      </div>
+
+      {/* Liste des membres de la famille */}
+      {familyMembers.length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <span className="label">Membres de la famille</span>
+          <ul className="users-list" style={{ marginTop: '0.5rem' }}>
+            {familyMembers.map((member, index) => (
+              <li key={index} className="dashboard-card bracket" style={{ minHeight: 'auto', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="user-pseudo">{member.pseudo}</span>
+                {member.isChef ? (
+                  <span className="user-badge" style={{ color: 'var(--live)', borderColor: 'var(--live)' }}>Chef</span>
+                ) : (
+                  <span className="user-badge" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>Membre</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-      ) : (
-        <p style={{ color: '#b3b3b3' }}>Chargement des informations...</p>
       )}
 
-      <hr className="dashboard-divider" style={{ marginTop: '1.5rem' }} />
-      
-      <h3 style={{ color: '#555', fontSize: '1.2rem', marginBottom: '1rem' }}>Ajouter à la famille</h3>
-      <form onSubmit={handleAddFamily}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <input
-            type="text"
-            placeholder="Entrer le pseudo"
-            value={newFamilyMember}
-            onChange={(e) => setNewFamilyMember(e.target.value)}
-            required
-            style={{ padding: '0.75rem', borderRadius: '4px', border: '1px solid #ccc' }}
-          />
-          <button type="submit" style={{ padding: '0.75rem', backgroundColor: '#4a90e2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Ajouter le membre
-          </button>
-        </div>
-      </form>
-      
-      {message && <p style={{ marginTop: '1rem', color: message.includes('Erreur') || message.includes('Impossible') ? 'red' : 'green' }}>{message}</p>}
+      {/* Formulaire d'ajout */}
+      <div style={{ marginTop: '2rem' }}>
+        <span className="label">Ajouter à la famille</span>
+        <form onSubmit={handleAddFamily} style={{ marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <input
+              type="text"
+              placeholder="Entrer le pseudo"
+              value={newFamilyMember}
+              onChange={(e) => setNewFamilyMember(e.target.value)}
+              required
+              style={{ padding: '0.75rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)' }}
+            />
+            <button type="submit" className="btn">
+              Ajouter le membre
+            </button>
+          </div>
+        </form>
+        
+        {/* Message de succès ou d'erreur */}
+        {message && (
+          <div className={`msg ${message.includes('Erreur') || message.includes('Impossible') ? 'msg-error' : 'msg-success'}`} style={{ marginTop: '1rem' }}>
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
