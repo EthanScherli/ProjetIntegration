@@ -312,3 +312,15 @@ app.post("/api/mue/terminer", async (req, res) => {
     res.status(500).json({ error: "Erreur lors de la clôture de la mue." });
   }
 });
+
+app.get("/api/mue/historique", async (_req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM "Mue" ORDER BY "date_debut" DESC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors de la récupération de l'historique." });
+  }
+});
