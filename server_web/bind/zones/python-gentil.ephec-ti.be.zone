@@ -1,0 +1,20 @@
+$TTL 86400
+@   IN  SOA ns.python-gentil.ephec-ti.be. admin.python-gentil.ephec-ti.be. (
+        2026051014 ; Serial 
+        3600       ; Refresh
+        1800       ; Retry
+        604800     ; Expire
+        86400 )    ; Minimum TTL
+
+     IN  NS  ns.python-gentil.ephec-ti.be.
+
+; 2.2.4. DMARC : Indique quoi faire en cas d'échec SPF/DKIM (p=none pour observer au début)
+_dmarc  IN  TXT "v=DMARC1; p=none; rua=mailto:python-gentil.ephec-ti.be;"
+
+; --- Records A ---
+@    IN  A   192.168.1.40
+ns   IN  A   192.168.1.40
+www  IN  A   192.168.1.40
+blog IN  A   192.168.1.40
+
+

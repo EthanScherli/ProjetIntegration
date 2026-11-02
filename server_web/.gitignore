@@ -1,0 +1,4 @@
+.env
+mailserver/docker-data/
+node_modules
+dist
