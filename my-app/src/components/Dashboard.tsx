@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import AccountManager from './AccountManager';
+import SuiviMue from './suiviMue';
 
 interface Capteur {
   id_mesure: number;
@@ -300,8 +301,9 @@ const Dashboard = () => {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
-          </div>
+            </div> {/* Fermeture de chart-container */}
+          </div> {/* Fermeture de climate-chart */}
+          <SuiviMue />
 
           {/* Historique images : conservé */}
           <div className="dashboard-card bracket full-width">
