@@ -327,14 +327,19 @@
 
 .dashboard-grid > :nth-child(1),
 .users-list > :nth-child(1) { animation-delay: 0.08s; }
+
 .dashboard-grid > :nth-child(2),
 .users-list > :nth-child(2) { animation-delay: 0.14s; }
+
 .dashboard-grid > :nth-child(3),
 .users-list > :nth-child(3) { animation-delay: 0.2s; }
+
 .dashboard-grid > :nth-child(4),
 .users-list > :nth-child(4) { animation-delay: 0.26s; }
+
 .dashboard-grid > :nth-child(5),
 .users-list > :nth-child(5) { animation-delay: 0.32s; }
+
 .dashboard-grid > :nth-child(n + 6),
 .users-list > :nth-child(n + 6) { animation-delay: 0.38s; }
 
@@ -444,44 +449,244 @@
   to { top: calc(100% - 6px); }
 }
 
-.climate-chart {
-  min-width: 0;
-  padding: 20px;
-  margin-top: 20px;
-}
-
-.chart-period-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  flex-wrap: wrap;
-}
-
-.chart-period-buttons button {
-  padding: 8px 16px;
-  cursor: pointer;
-  border: 1px solid var(--border-color, #555);
-  border-radius: 5px;
-  background: transparent;
-  color: inherit;
-}
-
-.chart-period-buttons button.active {
-  background: #3878d8;
-  color: white;
-  border-color: #3878d8;
-}
-
-.chart-container {
-  width: 100%;
-  height: 350px;
-  margin-top: 20px;
-}
+/* HISTORIQUE DES MUES */
 
 .mue-history-list {
   list-style: none;
   padding: 0;
   margin-top: 10px;
-  max-height: 200px; /* Limite la hauteur */
-  overflow-y: auto;  /* Ajoute un scroll si ça dépasse */
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* INTEGRATION DU GRAPHIQUE AU STYLE D'ORIGINE */
+
+.climate-chart {
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.chart-description {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.chart-count {
+  min-width: 65px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chart-count-value {
+  color: var(--live);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.chart-count-label {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  letter-spacing: 0.13em;
+}
+
+.chart-toolbar {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chart-period-label {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+}
+
+.chart-period-buttons {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chart-period-buttons button {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.chart-period-buttons button:hover {
+  color: var(--live);
+  border-color: var(--border);
+}
+
+.chart-period-buttons button.active {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.chart-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.chart-stat {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chart-stat-label {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+}
+
+.chart-stat-value {
+  color: var(--live);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.humidity-value, .humidity-indicator { color: #65aaff; }
+.light-value, .light-indicator { color: #d4a6ff; }
+.temperature-indicator { color: var(--live); }
+
+.chart-stat-indicator {
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+}
+
+.chart-divider {
+  width: 100%;
+  height: 1px;
+  margin: 12px 0 6px;
+  background: var(--border);
+}
+
+.chart-container {
+  display: block;
+  width: 100%;
+  height: 260px;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.chart-empty {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.chart-empty-icon {
+  color: var(--live);
+  font-size: 2.2rem;
+  opacity: 0.7;
+}
+
+.chart-empty strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.chart-empty span:last-child {
+  max-width: 280px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.chart-footer {
+  margin-top: 8px;
+  padding-top: 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+.chart-footer-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+@media (max-width: 600px) {
+  .climate-chart {
+    padding: 12px;
+  }
+
+  .chart-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chart-period-buttons {
+    width: 100%;
+  }
+
+  .chart-period-buttons button {
+    flex: 1;
+    padding: 7px 6px;
+  }
+
+  .chart-container {
+    height: 230px;
+  }
 }

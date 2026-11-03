@@ -1,4 +1,3 @@
-
 import { useEffect, useState, type CSSProperties } from 'react';
 import {
   LineChart,
@@ -128,7 +127,7 @@ const Dashboard = () => {
 
       const imagesData = await reponseImages.json();
       setImages(imagesData);
-    }catch {
+    } catch {
       setError('Impossible de communiquer avec le serveur');
     }
   };
@@ -146,11 +145,13 @@ const Dashboard = () => {
     return <AccountManager onClose={() => setShowAccount(false)} />;
   }
 
-  // Dernière mesure
-  const derniere = capteurs.reduce<Capteur | undefined>(
-    (max, c) => (!max || c.id_mesure > max.id_mesure ? c : max),
-    undefined
-  );
+  // Tri des capteurs par horodatage croissant
+  const capteursTries = [...capteurs]
+    .filter((c) => c.created_at && !isNaN(new Date(c.created_at).getTime()))
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+  // La dernière mesure réelle (la plus récente en date)
+  const derniere = capteursTries.length > 0 ? capteursTries[capteursTries.length - 1] : undefined;
 
   // Calcul du confort
   const scores = (Object.keys(PLAGES) as (keyof typeof PLAGES)[])
@@ -162,15 +163,12 @@ const Dashboard = () => {
     : null;
 
   // Préparation des données du graphique
-  const donneesGraphique = capteurs
-    .filter((c) => c.created_at && !isNaN(new Date(c.created_at).getTime()))
-    .map((c) => ({
-      date: new Date(c.created_at).getTime(),
-      temperature: c.temperature,
-      humidite: c.humidite,
-      luminosite: c.luminosite,
-    }))
-    .sort((a, b) => a.date - b.date);
+  const donneesGraphique = capteursTries.map((c) => ({
+    date: new Date(c.created_at).getTime(),
+    temperature: c.temperature,
+    humidite: c.humidite,
+    luminosite: c.luminosite,
+  }));
 
   return (
     <>
@@ -195,7 +193,7 @@ const Dashboard = () => {
 
         <div className="dashboard-grid">
           <SensorCard
-            label="Temp"
+            label="Température"
             unite="°C"
             valeur={derniere?.temperature}
             plage={PLAGES.temperature}
@@ -209,7 +207,7 @@ const Dashboard = () => {
           />
 
           <SensorCard
-            label="Lumière"
+            label="Luminosité"
             unite="%"
             valeur={derniere?.luminosite}
             plage={PLAGES.luminosite}
@@ -225,84 +223,123 @@ const Dashboard = () => {
 
           {/* Historique des données : graphique */}
           <div className="climate-chart">
-            <h2>Historique des données</h2>
+            <div className="chart-header">
+              <div className="chart-title-group">
+                <h2>
+                  <span className="chart-live-dot" />
+                  Historique des données
+                </h2>
+                <p className="chart-description">Relevés en temps réel du vivarium</p>
+              </div>
 
-            <div className="chart-period-buttons">
-              <button
-                className={periode === '24h' ? 'active' : ''}
-                onClick={() => setPeriode('24h')}
-              >
-                Dernières 24 heures
-              </button>
+              <div className="chart-count">
+                <span className="chart-count-value">{donneesGraphique.length}</span>
+                <span className="chart-count-label">RELEVÉS</span>
+              </div>
+            </div>
 
-              <button
-                className={periode === 'week' ? 'active' : ''}
-                onClick={() => setPeriode('week')}
-              >
-                7 derniers jours
-              </button>
+            <div className="chart-toolbar">
+              <span className="chart-period-label">PÉRIODE DE SUIVI</span>
+              <div className="chart-period-buttons">
+                <button
+                  className={periode === '24h' ? 'active' : ''}
+                  onClick={() => setPeriode('24h')}
+                >
+                  Dernières 24 heures
+                </button>
+
+                <button
+                  className={periode === 'week' ? 'active' : ''}
+                  onClick={() => setPeriode('week')}
+                >
+                  7 derniers jours
+                </button>
+              </div>
             </div>
 
             <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={donneesGraphique}>
-                  <CartesianGrid strokeDasharray="3 3" />
+              {donneesGraphique.length === 0 ? (
+                <div className="chart-empty">
+                  <span className="chart-empty-icon">⤺</span>
+                  <strong>Aucune donnée disponible</strong>
+                  <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={donneesGraphique}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
 
-                  <XAxis
-                    dataKey="date"
-                    type="number"
-                    scale="time"
-                    domain={['dataMin', 'dataMax']}
-                    tickFormatter={(timestamp) =>
-                      new Date(timestamp).toLocaleString('fr-BE', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    }
-                  />
+                    <XAxis
+                      dataKey="date"
+                      type="number"
+                      scale="time"
+                      domain={['dataMin', 'dataMax']}
+                      stroke="var(--text-muted)"
+                      tickFormatter={(timestamp) =>
+                        new Date(timestamp).toLocaleString('fr-BE', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      }
+                    />
 
-                  <YAxis />
+                    <YAxis stroke="var(--text-muted)" />
 
-                  <Tooltip
-                    labelFormatter={(timestamp) =>
-                      new Date(Number(timestamp)).toLocaleString('fr-BE')
-                    }
-                  />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--surface)',
+                        borderColor: 'var(--border)',
+                        color: 'var(--text)',
+                      }}
+                      labelFormatter={(timestamp) =>
+                        new Date(Number(timestamp)).toLocaleString('fr-BE')
+                      }
+                    />
 
-                  <Legend />
+                    <Legend />
 
-                  <Line
-                    type="monotone"
-                    dataKey="temperature"
-                    name="Température (°C)"
-                    stroke="#ff7300"
-                    connectNulls
-                    dot={false}
-                  />
+                    <Line
+                      type="monotone"
+                      dataKey="temperature"
+                      name="Température (°C)"
+                      stroke="var(--live)"
+                      connectNulls
+                      dot={false}
+                    />
 
-                  <Line
-                    type="monotone"
-                    dataKey="humidite"
-                    name="Humidité (%)"
-                    stroke="#0088fe"
-                    connectNulls
-                    dot={false}
-                  />
+                    <Line
+                      type="monotone"
+                      dataKey="humidite"
+                      name="Humidité (%)"
+                      stroke="#65aaff"
+                      connectNulls
+                      dot={false}
+                    />
 
-                  <Line
-                    type="monotone"
-                    dataKey="luminosite"
-                    name="Luminosité (%)"
-                    stroke="#00c49f"
-                    connectNulls
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div> {/* Fermeture de chart-container */}
-          </div> {/* Fermeture de climate-chart */}
+                    <Line
+                      type="monotone"
+                      dataKey="luminosite"
+                      name="Luminosité (%)"
+                      stroke="#d4a6ff"
+                      connectNulls
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="chart-footer">
+              <span>
+                <span className="chart-footer-dot" />
+                FLUX DE DONNÉES ACTIF
+              </span>
+              <span>RÉFRECHISSEMENT AUTO (3S)</span>
+            </div>
+          </div>
+
           <SuiviMue />
 
           {/* Historique images : conservé */}
