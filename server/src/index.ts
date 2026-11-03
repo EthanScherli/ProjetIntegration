@@ -360,32 +360,38 @@ app.listen(Number(process.env.PORT), () => {
 
 // ROUTES POUR LA MUE
 
-app.get("/api/mue/active", async (_req, res) => {
+app.get("/api/mue/active", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non autorisé" });
+
   try {
     const result = await pool.query(
-      'SELECT * FROM "Mue" WHERE "statut" = \'EN_COURS\' ORDER BY "date_debut" DESC LIMIT 1'
+      'SELECT * FROM "Mue" WHERE "statut" = \'EN_COURS\' AND "id_Ut" = $1 LIMIT 1',
+      [userId]
     );
-    res.json(result.rows[0] ?? null);
+    res.json(result.rows[0] || null);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Erreur lors de la récupération de la mue." });
+    res.status(500).json({ error: "Erreur lors de la récupération." });
   }
 });
 
 app.post("/api/mue/demarrer", async (req, res) => {
   const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non autorisé" });
+
   try {
-    // Vérifier si une mue n'est pas déjà en cours
     const activeRes = await pool.query(
-      'SELECT "id_mue" FROM "Mue" WHERE "statut" = \'EN_COURS\' LIMIT 1'
+      'SELECT "id_mue" FROM "Mue" WHERE "statut" = \'EN_COURS\' AND "id_Ut" = $1 LIMIT 1',
+      [userId]
     );
-    if (activeRes.rowCount! > 0) {
+    if (activeRes.rows.length > 0) {
       return res.status(400).json({ error: "Une mue est déjà en cours." });
     }
 
     const result = await pool.query(
       'INSERT INTO "Mue" ("date_debut", "statut", "id_Ut") VALUES (NOW(), \'EN_COURS\', $1) RETURNING *',
-      [userId ? Number(userId) : null]
+      [userId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -395,23 +401,30 @@ app.post("/api/mue/demarrer", async (req, res) => {
 });
 
 app.post("/api/mue/terminer", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non autorisé" });
+
   const { id_mue } = req.body ?? {};
+
   try {
     let result;
+
     if (id_mue) {
+      // Clôture d'une mue précise en vérifiant qu'elle appartient bien à l'utilisateur
       result = await pool.query(
-        'UPDATE "Mue" SET "date_fin" = NOW(), "statut" = \'TERMINEE\' WHERE "id_mue" = $1 RETURNING *',
-        [id_mue]
+        'UPDATE "Mue" SET "date_fin" = NOW(), "statut" = \'TERMINEE\' WHERE "id_mue" = $1 AND "id_Ut" = $2 RETURNING *',
+        [id_mue, userId]
       );
     } else {
-      // Clôture automatique de la mue active s'il n'y a pas d'id transmis
+      // Clôture automatique de la mue active de l'utilisateur uniquement
       result = await pool.query(
-        'UPDATE "Mue" SET "date_fin" = NOW(), "statut" = \'TERMINEE\' WHERE "statut" = \'EN_COURS\' RETURNING *'
+        'UPDATE "Mue" SET "date_fin" = NOW(), "statut" = \'TERMINEE\' WHERE "statut" = \'EN_COURS\' AND "id_Ut" = $1 RETURNING *',
+        [userId]
       );
     }
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Aucune mue active à clôturer." });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Aucune mue active à clôturer pour cet utilisateur." });
     }
 
     res.json(result.rows[0]);
@@ -421,10 +434,14 @@ app.post("/api/mue/terminer", async (req, res) => {
   }
 });
 
-app.get("/api/mue/historique", async (_req, res) => {
+app.get("/api/mue/historique", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non autorisé" });
+
   try {
     const result = await pool.query(
-      'SELECT * FROM "Mue" ORDER BY "date_debut" DESC'
+      'SELECT * FROM "Mue" WHERE "id_Ut" = $1 ORDER BY "date_debut" DESC',
+      [userId]
     );
     res.json(result.rows);
   } catch (err) {

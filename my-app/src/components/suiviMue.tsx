@@ -13,73 +13,81 @@ export const SuiviMue = () => {
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState('');
 
-  const chargerMueActive = async () => {
-    setChargement(true);
-    setErreur('');
-    try {
-      const reponse = await fetch('/api/mue/active');
-      if (!reponse.ok) {
-        setErreur('Erreur lors du chargement de la mue');
-        return;
-      }
+const chargerMueActive = async () => {
+  setChargement(true);
+  setErreur('');
+  try {
+    const reponse = await fetch('/api/mue/active');
+    if (!reponse.ok) {
+      setErreur('Erreur lors du chargement de la mue');
+      return;
+    }
+    const data = await reponse.json();
+    setMueActive(data);
+  } catch {
+    setErreur('Impossible de contacter le serveur');
+  } finally {
+    setChargement(false);
+  }
+};
+
+const chargerHistorique = async () => {
+  try {
+    const reponse = await fetch('/api/mue/historique');
+    if (reponse.ok) {
       const data = await reponse.json();
-      setMueActive(data);
-    } catch {
-      setErreur('Impossible de contacter le serveur');
-    } finally {
-      setChargement(false);
+      // 1. Sécurité : Toujours s'assurer qu'il s'agit d'un tableau
+      setHistorique(Array.isArray(data) ? data : []);
     }
-  };
+  } catch {
+    console.error("Erreur lors de la récupération de l'historique");
+  }
+};
 
-  const chargerHistorique = async () => {
-    try {
-      const reponse = await fetch('/api/mue/historique');
-      if (reponse.ok) {
-        const data = await reponse.json();
-        setHistorique(data);
-      }
-    } catch {
-      console.error("Erreur lors de la récupération de l'historique");
+useEffect(() => {
+  chargerMueActive();
+  chargerHistorique();
+}, []);
+
+const demarrerMue = async () => {
+  setChargement(true);
+  setErreur('');
+  try {
+    const reponse = await fetch('/api/mue/demarrer', { method: 'POST' });
+    if (!reponse.ok) {
+      // 2. Affiche le message d'erreur exact envoyé par le backend Express
+      const dataErr = await reponse.json();
+      throw new Error(dataErr.error || 'Impossible de démarrer la mue');
     }
-  };
+    await chargerMueActive();
+    await chargerHistorique();
+  } catch (err: any) {
+    setErreur(err.message || 'Impossible de démarrer la mue');
+    setChargement(false);
+  }
+};
 
-  useEffect(() => {
-    chargerMueActive();
-    chargerHistorique();
-  }, []);
-
-  const demarrerMue = async () => {
-    setChargement(true);
-    setErreur('');
-    try {
-      const reponse = await fetch('/api/mue/demarrer', { method: 'POST' });
-      if (!reponse.ok) throw new Error();
-      await chargerMueActive();
-      await chargerHistorique();
-    } catch {
-      setErreur('Impossible de démarrer la mue');
-      setChargement(false);
+const terminerMue = async () => {
+  if (!mueActive) return;
+  setChargement(true);
+  setErreur('');
+  try {
+    const reponse = await fetch('/api/mue/terminer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_mue: mueActive.id_mue }),
+    });
+    if (!reponse.ok) {
+      const dataErr = await reponse.json();
+      throw new Error(dataErr.error || 'Impossible de terminer la mue');
     }
-  };
-
-  const terminerMue = async () => {
-    if (!mueActive) return;
-    setChargement(true);
-    setErreur('');
-    try {
-      const reponse = await fetch('/api/mue/terminer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_mue: mueActive.id_mue }),
-      });
-      if (!reponse.ok) throw new Error();
-      await chargerMueActive();
-      await chargerHistorique();
-    } catch {
-      setErreur('Impossible de terminer la mue');
-      setChargement(false);
-    }
-  };
+    await chargerMueActive();
+    await chargerHistorique();
+  } catch (err: any) {
+    setErreur(err.message || 'Impossible de terminer la mue');
+    setChargement(false);
+  }
+};
 
   // Calcul du délai moyen entre 2 mues
   const calculerDelaiMoyen = (): number | null => {
