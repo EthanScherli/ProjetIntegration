@@ -1,6 +1,6 @@
 $TTL 86400
 @   IN  SOA ns.python-gentil.ephec-ti.be. admin.python-gentil.ephec-ti.be. (
-        2026051014 ; Serial 
+        20261103 ; Serial 
         3600       ; Refresh
         1800       ; Retry
         604800     ; Expire
@@ -12,9 +12,6 @@ $TTL 86400
 _dmarc  IN  TXT "v=DMARC1; p=none; rua=mailto:python-gentil.ephec-ti.be;"
 
 ; --- Records A ---
-@    IN  A   192.168.1.40
-ns   IN  A   192.168.1.40
-www  IN  A   192.168.1.40
-blog IN  A   192.168.1.40
-
+@       IN  AAAA   2a02:a03f:741f:2900:c3a8:313e:3b80:c7d1
+app     IN  AAAA   2a02:a03f:741f:2900:c3a8:313e:3b80:c7d1
 
