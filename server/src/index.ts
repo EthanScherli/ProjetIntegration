@@ -203,6 +203,45 @@ app.post("/api/family/add", async (req, res) => {
   }
 });
 
+app.post("/api/family/remove", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non connecté." });
+
+  const { pseudo } = req.body ?? {};
+  if (!pseudo || typeof pseudo !== "string" || !pseudo.trim()) {
+    return res.status(400).json({ error: "Pseudo invalide." });
+  }
+
+  try {
+    // 1. Vérifier que celui qui fait la demande est bien le chef
+    const myFamRes = await pool.query('SELECT "id_Famille", "Type_Membre" FROM "Famille" WHERE "id_Ut" = $1', [userId]);
+    if (myFamRes.rowCount === 0 || (myFamRes.rows[0].Type_Membre !== 1 && myFamRes.rows[0].Type_Membre !== '1')) {
+      return res.status(403).json({ error: "Seul le chef de famille peut retirer des membres." });
+    }
+    
+    const idFamille = myFamRes.rows[0].id_Famille;
+
+    // 2. Trouver l'ID de l'utilisateur à supprimer
+    const targetRes = await pool.query('SELECT "id_Ut" FROM "Utilisateurs" WHERE pseudo = $1', [pseudo.trim()]);
+    if (targetRes.rowCount === 0) return res.status(404).json({ error: "Utilisateur introuvable." });
+    
+    const targetId = targetRes.rows[0].id_Ut;
+    if (targetId === userId) return res.status(400).json({ error: "Vous ne pouvez pas vous retirer vous-même." });
+
+    // 3. Le supprimer de la table Famille
+    const deleteRes = await pool.query('DELETE FROM "Famille" WHERE "id_Ut" = $1 AND "id_Famille" = $2', [targetId, idFamille]);
+    
+    if (deleteRes.rowCount === 0) {
+      return res.status(400).json({ error: "Ce membre n'est pas dans votre famille." });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors de la suppression." });
+  }
+});
+
 app.get("/api/family/members", async (req, res) => {
   const userId = getSessionUserId(req);
   if (!userId) return res.status(401).json({ error: "Non connecté." });
