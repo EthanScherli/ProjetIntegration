@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -11,8 +10,8 @@ const app = express();
 const JWT_SECRET = process.env.JWT_SECRET!;
 const COOKIE_NAME = "token";
 const SESSION_DAYS = 7;
+const PORT = Number(process.env.PORT) || 3000;
 
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -29,15 +28,27 @@ app.get("/api/db-check", async (_req, res) => {
   res.json(result.rows[0]);
 });
 
+
 function setSessionCookie(res: express.Response, userId: string) {
-  const token = jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: `${SESSION_DAYS}d` });
+  if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET est manquant dans les variables d'environnement.");
+  }
+
+  const token = jwt.sign(
+      { id: userId },
+      JWT_SECRET,
+      { expiresIn: `${SESSION_DAYS}d` }
+  );
+
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
+    secure: false, // Temporaire : ton site utilise HTTP
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000,
   });
 }
+
 
 app.post("/api/register", async (req, res) => {
   const { pseudo, mail, mdp } = req.body ?? {};
@@ -350,12 +361,14 @@ app.get("/api/users", requireAdmin, async (_req, res) => {
 });
 
 app.post("/api/logout", (_req, res) => {
-  res.clearCookie(COOKIE_NAME);
-  res.json({ ok: true });
-});
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/",
+  });
 
-app.listen(Number(process.env.PORT), () => {
-  console.log(`API sur http://localhost:${process.env.PORT}`);
+  res.json({ ok: true });
 });
 
 // ROUTES POUR LA MUE
@@ -448,4 +461,8 @@ app.get("/api/mue/historique", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Erreur lors de la récupération de l'historique." });
   }
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API démarrée sur le port ${PORT}`);
 });
