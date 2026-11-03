@@ -38,7 +38,7 @@ def sync_time():
         ntptime.settime()
         print("Heure synchronisée avec succès.")
     except Exception as e:
-        print("NTP bloqué par Wokwi. Forçage de la date en 2026 pour débloquer Supabase...")
+        print("NTP bloqué. Forçage de la date...")
         machine.RTC().datetime((2026, 11, 2, 0, 12, 0, 0, 0))
 
 def get_heure_locale():
@@ -88,6 +88,7 @@ def main():
             client, addr_client = s.accept()
             requete = client.recv(1024).decode('utf-8')
 
+            # LOGIQUE NORMALE POUR LE RELAIS : 1 = Allumé, 0 = Éteint
             if 'GET /api/force-on' in requete:
                 mode_auto = False
                 relais.value(1)
@@ -111,21 +112,23 @@ def main():
         if maintenant - derniere_verif_temps >= INTERVALLE_VERIFICATION:
             derniere_verif_temps = maintenant
             heure, minute = get_heure_locale()
+            
             lum_brute = capteur_lumiere.read_u16()
+            # FORMULE INVERSÉE POUR LE CAPTEUR RÉEL
             lum_pourcentage = round(((65535 - lum_brute) / 65535) * 100, 1)
 
             est_jour = HEURE_LEVER <= heure < HEURE_COUCHER
 
             if mode_auto:
                 if est_jour:
-                    # On allume la lampe uniquement si la lumière naturelle est sous les 40%
+                    # On allume (1) seulement s'il fait trop sombre
                     if lum_pourcentage < SEUIL_LUMINOSITE_PCT:
                         relais.value(1)
-                    # S'il fait déjà clair (> 40%), on coupe la lampe pour économiser
+                    # S'il fait déjà clair, on éteint (0)
                     else:
                         relais.value(0)
                 else:
-                    # La nuit, la lampe est toujours éteinte
+                    # La nuit, on éteint (0)
                     relais.value(0)
 
             alerte_actuelle = "Aucune"
