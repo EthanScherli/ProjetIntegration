@@ -88,12 +88,11 @@ const Dashboard = () => {
     const recupCapteurs = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/api/donnees-capteurs/${periode}`,
-          {
-            credentials: 'include',
-          }
+            `/api/donnees-capteurs/${periode}`,
+            {
+              credentials: 'include',
+            }
         );
-
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des capteurs');
         }
@@ -118,8 +117,9 @@ const Dashboard = () => {
   // Récupération des images : fonctionnement conservé
   const recupCam = async () => {
     try {
-      const reponseImages = await fetch('/api/historique-images');
-
+      const reponseImages = await fetch('/api/historique-images', {
+        credentials: 'include',
+      });
       if (!reponseImages.ok) {
         const data = await reponseImages.json().catch(() => ({}));
         setError(data.error ?? ("Erreur lors du chargement de l'historique des images"));
