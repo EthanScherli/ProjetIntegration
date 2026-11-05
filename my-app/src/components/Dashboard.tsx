@@ -81,7 +81,7 @@ const Dashboard = () => {
   const [images, setImages] = useState<ImageHistorique[]>([]);
   const [error, setError] = useState('');
   const [periode, setPeriode] = useState<'24h' | 'week'>('24h');
-
+  const [camError, setCamError] = useState(false); // la camera
   // Récupération des capteurs selon la période choisie
   useEffect(() => {
     const recupCapteurs = async () => {
@@ -193,32 +193,61 @@ const Dashboard = () => {
 
         <div className="dashboard-grid">
           <SensorCard
-            label="Température"
-            unite="°C"
-            valeur={derniere?.temperature}
-            plage={PLAGES.temperature}
+              label="Température"
+              unite="°C"
+              valeur={derniere?.temperature}
+              plage={PLAGES.temperature}
           />
 
           <SensorCard
-            label="Humidité"
-            unite="%"
-            valeur={derniere?.humidite}
-            plage={PLAGES.humidite}
+              label="Humidité"
+              unite="%"
+              valeur={derniere?.humidite}
+              plage={PLAGES.humidite}
           />
 
           <SensorCard
-            label="Luminosité"
-            unite="%"
-            valeur={derniere?.luminosite}
-            plage={PLAGES.luminosite}
+              label="Luminosité"
+              unite="%"
+              valeur={derniere?.luminosite}
+              plage={PLAGES.luminosite}
           />
 
-          <div className="dashboard-card bracket cam-card">
-            <span className="cam-scan" />
-            <span className="label">
-              <span className="rec-dot" /> Cam 01
+          <div
+              className="dashboard-card bracket cam-card"
+              style={{position: 'relative', overflow: 'hidden', padding: 0}}
+          >
+            <span className="cam-scan" style={{zIndex: 2}}/>
+
+            <span className="label" style={{position: 'absolute', top: '10px', left: '10px', zIndex: 2}}>
+              <span className="rec-dot"/> Cam 01
             </span>
-            <span className="label status-off blink">Pas de signal</span>
+
+            {/* Si la caméra ne répond pas, on affiche "Pas de signal" */}
+            {camError && (
+                <span className="label status-off blink"
+                      style={{position: 'absolute', bottom: '10px', right: '10px', zIndex: 2}}>
+                Pas de signal
+              </span>
+            )}
+
+            {/* Le flux vidéo de la caméra */}
+            <img
+                src="http://91.176.57.43:18001"
+                alt="Flux direct vivarium"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  zIndex: 1,
+                  display: camError ? 'none' : 'block'
+                }}
+                onError={() => setCamError(true)}
+                onLoad={() => setCamError(false)}
+            />
           </div>
 
           {/* Historique des données : graphique */}
@@ -226,7 +255,7 @@ const Dashboard = () => {
             <div className="chart-header">
               <div className="chart-title-group">
                 <h2>
-                  <span className="chart-live-dot" />
+                  <span className="chart-live-dot"/>
                   Historique des données
                 </h2>
                 <p className="chart-description">Relevés en temps réel du vivarium</p>
@@ -242,15 +271,15 @@ const Dashboard = () => {
               <span className="chart-period-label">PÉRIODE DE SUIVI</span>
               <div className="chart-period-buttons">
                 <button
-                  className={periode === '24h' ? 'active' : ''}
-                  onClick={() => setPeriode('24h')}
+                    className={periode === '24h' ? 'active' : ''}
+                    onClick={() => setPeriode('24h')}
                 >
                   Dernières 24 heures
                 </button>
 
                 <button
-                  className={periode === 'week' ? 'active' : ''}
-                  onClick={() => setPeriode('week')}
+                    className={periode === 'week' ? 'active' : ''}
+                    onClick={() => setPeriode('week')}
                 >
                   7 derniers jours
                 </button>
@@ -259,88 +288,88 @@ const Dashboard = () => {
 
             <div className="chart-container">
               {donneesGraphique.length === 0 ? (
-                <div className="chart-empty">
-                  <span className="chart-empty-icon">⤺</span>
-                  <strong>Aucune donnée disponible</strong>
-                  <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
-                </div>
+                  <div className="chart-empty">
+                    <span className="chart-empty-icon">⤺</span>
+                    <strong>Aucune donnée disponible</strong>
+                    <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
+                  </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={donneesGraphique}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={donneesGraphique}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)"/>
 
-                    <XAxis
-                      dataKey="date"
-                      type="number"
-                      scale="time"
-                      domain={['dataMin', 'dataMax']}
-                      stroke="var(--text-muted)"
-                      tickFormatter={(timestamp) =>
-                        new Date(timestamp).toLocaleString('fr-BE', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      }
-                    />
+                      <XAxis
+                          dataKey="date"
+                          type="number"
+                          scale="time"
+                          domain={['dataMin', 'dataMax']}
+                          stroke="var(--text-muted)"
+                          tickFormatter={(timestamp) =>
+                              new Date(timestamp).toLocaleString('fr-BE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                          }
+                      />
 
-                    <YAxis stroke="var(--text-muted)" />
+                      <YAxis stroke="var(--text-muted)"/>
 
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'var(--surface)',
-                        borderColor: 'var(--border)',
-                        color: 'var(--text)',
-                      }}
-                      labelFormatter={(timestamp) =>
-                        new Date(Number(timestamp)).toLocaleString('fr-BE')
-                      }
-                    />
+                      <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'var(--surface)',
+                            borderColor: 'var(--border)',
+                            color: 'var(--text)',
+                          }}
+                          labelFormatter={(timestamp) =>
+                              new Date(Number(timestamp)).toLocaleString('fr-BE')
+                          }
+                      />
 
-                    <Legend />
+                      <Legend/>
 
-                    <Line
-                      type="monotone"
-                      dataKey="temperature"
-                      name="Température (°C)"
-                      stroke="var(--live)"
-                      connectNulls
-                      dot={false}
-                    />
+                      <Line
+                          type="monotone"
+                          dataKey="temperature"
+                          name="Température (°C)"
+                          stroke="var(--live)"
+                          connectNulls
+                          dot={false}
+                      />
 
-                    <Line
-                      type="monotone"
-                      dataKey="humidite"
-                      name="Humidité (%)"
-                      stroke="#65aaff"
-                      connectNulls
-                      dot={false}
-                    />
+                      <Line
+                          type="monotone"
+                          dataKey="humidite"
+                          name="Humidité (%)"
+                          stroke="#65aaff"
+                          connectNulls
+                          dot={false}
+                      />
 
-                    <Line
-                      type="monotone"
-                      dataKey="luminosite"
-                      name="Luminosité (%)"
-                      stroke="#d4a6ff"
-                      connectNulls
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                      <Line
+                          type="monotone"
+                          dataKey="luminosite"
+                          name="Luminosité (%)"
+                          stroke="#d4a6ff"
+                          connectNulls
+                          dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
               )}
             </div>
 
             <div className="chart-footer">
               <span>
-                <span className="chart-footer-dot" />
+                <span className="chart-footer-dot"/>
                 FLUX DE DONNÉES ACTIF
               </span>
               <span>RÉFRECHISSEMENT AUTO (3S)</span>
             </div>
           </div>
 
-          <SuiviMue />
+          <SuiviMue/>
 
           {/* Historique images : conservé */}
           <div className="dashboard-card bracket full-width">
@@ -348,8 +377,8 @@ const Dashboard = () => {
 
             <span className="empty-state">
               {images.length
-                ? `${images.length} images enregistrées`
-                : 'Aucune donnée'}
+                  ? `${images.length} images enregistrées`
+                  : 'Aucune donnée'}
             </span>
           </div>
         </div>
