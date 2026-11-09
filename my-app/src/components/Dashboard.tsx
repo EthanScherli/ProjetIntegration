@@ -12,7 +12,6 @@ import {
 import AccountManager from './AccountManager';
 import SuiviMue from './suiviMue';
 
-
 const SUPABASE_STORAGE_URL = "https://eimlzbkakcjlletqxoks.supabase.co/storage/v1/object/public/clips";
 
 interface Capteur {
@@ -31,6 +30,7 @@ interface ImageHistorique {
   chemin_fichier: string;
   id_Ut: string;
 }
+
 const PLAGES = {
   temperature: { min: 24, max: 30, echelle: [0, 40] },
   humidite: { min: 60, max: 80, echelle: [0, 100] },
@@ -88,16 +88,15 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [canEdit, setCanEdit] = useState(true);
   const [periode, setPeriode] = useState<'24h' | 'week'>('24h');
-  const [camError, setCamError] = useState(false); // la camera
+  const [camError, setCamError] = useState(false);
 
-  // --- NOUVEAU : Vérification des droits utilisateur au chargement ---
+  // Vérification des droits utilisateur au chargement
   useEffect(() => {
     const fetchRights = async () => {
       try {
         const resUser = await fetch('/api/me');
         if (resUser.ok) {
           const userData = await resUser.json();
-          // L'utilisateur peut modifier s'il est chef ou s'il n'est dans aucune famille
           setCanEdit(userData.isChef || !userData.hasFamily);
         }
       } catch (err) {
@@ -106,24 +105,19 @@ const Dashboard = () => {
     };
     fetchRights();
   }, []);
-  // ------------------------------------------------------------------
 
-  // Récupération des capteurs selon la période choisie
+  // Récupération des capteurs selon la période
   useEffect(() => {
     const recupCapteurs = async () => {
       try {
-        const response = await fetch(
-            `/api/donnees-capteurs/${periode}`,
-            {
-              credentials: 'include',
-            }
-        );
+        const response = await fetch(`/api/donnees-capteurs/${periode}`, {
+          credentials: 'include',
+        });
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des capteurs');
         }
 
         const data: Capteur[] = await response.json();
-
         setCapteurs(data);
         setError('');
       } catch (err) {
@@ -133,53 +127,72 @@ const Dashboard = () => {
     };
 
     recupCapteurs();
-
     const interval = setInterval(recupCapteurs, 3000);
-
     return () => clearInterval(interval);
   }, [periode]);
 
-  // Récupération des images : fonctionnement conservé
+  // Récupération de l'historique des vidéos
   const recupCam = async () => {
     try {
-      const reponseImages = await fetch('/api/historique-images', {
+      const response = await fetch('/api/historique-images', {
+        method: 'GET',
         credentials: 'include',
+        cache: 'no-store'
       });
-      if (!reponseImages.ok) {
-        const data = await reponseImages.json().catch(() => ({}));
-        setError(data.error ?? ("Erreur lors du chargement de l'historique des images"));
+
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP : ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!Array.isArray(data)) {
+        console.error("Le JSON reçu n'est pas un tableau :", data);
+        setImages([]);
+        setError("Format de données incorrect.");
         return;
       }
 
-      const imagesData = await reponseImages.json();
-      setImages(imagesData);
-    } catch {
-      setError('Impossible de communiquer avec le serveur');
+      const videosValides = data.filter((clip: ImageHistorique) =>
+        clip.chemin_fichier &&
+        clip.chemin_fichier.toLowerCase().endsWith('.mp4')
+      );
+
+      // Met à jour l'état seulement si un nouveau clip apparaît pour préserver le lecteur vidéo
+      setImages((anciennesImages) => {
+        if (
+          anciennesImages.length === videosValides.length &&
+          anciennesImages[0]?.id === videosValides[0]?.id
+        ) {
+          return anciennesImages;
+        }
+        return videosValides;
+      });
+
+      setError('');
+    } catch (error) {
+      console.error("Erreur historique vidéos :", error);
+      setError("Impossible de charger les vidéos.");
+      setImages([]);
     }
   };
 
   useEffect(() => {
     recupCam();
-
-    const interval = setInterval(recupCam, 3000);
-
+    const interval = setInterval(recupCam, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // Affichage de la gestion du compte
   if (showAccount) {
     return <AccountManager onClose={() => setShowAccount(false)} />;
   }
 
-  // Tri des capteurs par horodatage croissant
   const capteursTries = [...capteurs]
     .filter((c) => c.created_at && !isNaN(new Date(c.created_at).getTime()))
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-  // La dernière mesure réelle (la plus récente en date)
   const derniere = capteursTries.length > 0 ? capteursTries[capteursTries.length - 1] : undefined;
 
-  // Calcul du confort
   const scores = (Object.keys(PLAGES) as (keyof typeof PLAGES)[])
     .filter((cle) => derniere?.[cle] != null)
     .map((cle) => scoreConfort(derniere![cle]!, PLAGES[cle]));
@@ -188,7 +201,6 @@ const Dashboard = () => {
     ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
     : null;
 
-  // Préparation des données du graphique
   const donneesGraphique = capteursTries.map((c) => ({
     date: new Date(c.created_at).getTime(),
     temperature: c.temperature,
@@ -219,69 +231,65 @@ const Dashboard = () => {
 
         <div className="dashboard-grid">
           <SensorCard
-              label="Température"
-              unite="°C"
-              valeur={derniere?.temperature}
-              plage={PLAGES.temperature}
+            label="Température"
+            unite="°C"
+            valeur={derniere?.temperature}
+            plage={PLAGES.temperature}
           />
 
           <SensorCard
-              label="Humidité"
-              unite="%"
-              valeur={derniere?.humidite}
-              plage={PLAGES.humidite}
+            label="Humidité"
+            unite="%"
+            valeur={derniere?.humidite}
+            plage={PLAGES.humidite}
           />
 
           <SensorCard
-              label="Luminosité"
-              unite="%"
-              valeur={derniere?.luminosite}
-              plage={PLAGES.luminosite}
+            label="Luminosité"
+            unite="%"
+            valeur={derniere?.luminosite}
+            plage={PLAGES.luminosite}
           />
 
           <div
-              className="dashboard-card bracket cam-card"
-              style={{position: 'relative', overflow: 'hidden', padding: 0}}
+            className="dashboard-card bracket cam-card"
+            style={{ position: 'relative', overflow: 'hidden', padding: 0 }}
           >
-            <span className="cam-scan" style={{zIndex: 2}}/>
+            <span className="cam-scan" style={{ zIndex: 2 }} />
 
-            <span className="label" style={{position: 'absolute', top: '10px', left: '10px', zIndex: 2}}>
-              <span className="rec-dot"/> Cam 01
+            <span className="label" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 2 }}>
+              <span className="rec-dot" /> Cam 01
             </span>
 
-            {/* Si la caméra ne répond pas, on affiche "Pas de signal" */}
             {camError && (
-                <span className="label status-off blink"
-                      style={{position: 'absolute', bottom: '10px', right: '10px', zIndex: 2}}>
+              <span className="label status-off blink" style={{ position: 'absolute', bottom: '10px', right: '10px', zIndex: 2 }}>
                 Pas de signal
               </span>
             )}
 
-            {/* Le flux vidéo de la caméra */}
             <img
-                src="http://91.176.57.43:18001"
-                alt="Flux direct vivarium"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  zIndex: 1,
-                  display: camError ? 'none' : 'block'
-                }}
-                onError={() => setCamError(true)}
-                onLoad={() => setCamError(false)}
+              src="http://91.176.57.43:18001"
+              alt="Flux direct vivarium"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                zIndex: 1,
+                display: camError ? 'none' : 'block'
+              }}
+              onError={() => setCamError(true)}
+              onLoad={() => setCamError(false)}
             />
           </div>
 
-          {/* Historique des données : graphique */}
           <div className="climate-chart">
             <div className="chart-header">
               <div className="chart-title-group">
                 <h2>
-                  <span className="chart-live-dot"/>
+                  <span className="chart-live-dot" />
                   Historique des données
                 </h2>
                 <p className="chart-description">Relevés en temps réel du vivarium</p>
@@ -297,15 +305,15 @@ const Dashboard = () => {
               <span className="chart-period-label">PÉRIODE DE SUIVI</span>
               <div className="chart-period-buttons">
                 <button
-                    className={periode === '24h' ? 'active' : ''}
-                    onClick={() => setPeriode('24h')}
+                  className={periode === '24h' ? 'active' : ''}
+                  onClick={() => setPeriode('24h')}
                 >
                   Dernières 24 heures
                 </button>
 
                 <button
-                    className={periode === 'week' ? 'active' : ''}
-                    onClick={() => setPeriode('week')}
+                  className={periode === 'week' ? 'active' : ''}
+                  onClick={() => setPeriode('week')}
                 >
                   7 derniers jours
                 </button>
@@ -314,81 +322,74 @@ const Dashboard = () => {
 
             <div className="chart-container">
               {donneesGraphique.length === 0 ? (
-                  <div className="chart-empty">
-                    <span className="chart-empty-icon">⤺</span>
-                    <strong>Aucune donnée disponible</strong>
-                    <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
-                  </div>
+                <div className="chart-empty">
+                  <span className="chart-empty-icon">⤺</span>
+                  <strong>Aucune donnée disponible</strong>
+                  <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
+                </div>
               ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={donneesGraphique}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)"/>
-
-                      <XAxis
-                          dataKey="date"
-                          type="number"
-                          scale="time"
-                          domain={['dataMin', 'dataMax']}
-                          stroke="var(--text-muted)"
-                          tickFormatter={(timestamp) =>
-                              new Date(timestamp).toLocaleString('fr-BE', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
-                          }
-                      />
-
-                      <YAxis stroke="var(--text-muted)"/>
-
-                      <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'var(--surface)',
-                            borderColor: 'var(--border)',
-                            color: 'var(--text)',
-                          }}
-                          labelFormatter={(timestamp) =>
-                              new Date(Number(timestamp)).toLocaleString('fr-BE')
-                          }
-                      />
-
-                      <Legend/>
-
-                      <Line
-                          type="monotone"
-                          dataKey="temperature"
-                          name="Température (°C)"
-                          stroke="var(--live)"
-                          connectNulls
-                          dot={false}
-                      />
-
-                      <Line
-                          type="monotone"
-                          dataKey="humidite"
-                          name="Humidité (%)"
-                          stroke="#65aaff"
-                          connectNulls
-                          dot={false}
-                      />
-
-                      <Line
-                          type="monotone"
-                          dataKey="luminosite"
-                          name="Luminosité (%)"
-                          stroke="#d4a6ff"
-                          connectNulls
-                          dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={donneesGraphique}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis
+                      dataKey="date"
+                      type="number"
+                      scale="time"
+                      domain={['dataMin', 'dataMax']}
+                      stroke="var(--text-muted)"
+                      tickFormatter={(timestamp) =>
+                        new Date(timestamp).toLocaleString('fr-BE', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      }
+                    />
+                    <YAxis stroke="var(--text-muted)" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--surface)',
+                        borderColor: 'var(--border)',
+                        color: 'var(--text)',
+                      }}
+                      labelFormatter={(timestamp) =>
+                        new Date(Number(timestamp)).toLocaleString('fr-BE')
+                      }
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="temperature"
+                      name="Température (°C)"
+                      stroke="var(--live)"
+                      connectNulls
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="humidite"
+                      name="Humidité (%)"
+                      stroke="#65aaff"
+                      connectNulls
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="luminosite"
+                      name="Luminosité (%)"
+                      stroke="#d4a6ff"
+                      connectNulls
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               )}
             </div>
 
             <div className="chart-footer">
               <span>
-                <span className="chart-footer-dot"/>
+                <span className="chart-footer-dot" />
                 FLUX DE DONNÉES ACTIF
               </span>
               <span>RÉFRECHISSEMENT AUTO (3S)</span>
@@ -397,65 +398,104 @@ const Dashboard = () => {
 
           <SuiviMue canEdit={canEdit} />
 
-          {/* Historique des captures / vidéos */}
-<div className="dashboard-card bracket full-width" style={{ marginTop: '20px' }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-    <span className="label">Historique des clips ({images.length}/10)</span>
-    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Utilisateur 14</span>
-  </div>
-
-  {images.length === 0 ? (
-    <span className="empty-state">Aucun clip disponible</span>
-  ) : (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-        gap: '15px',
-        maxHeight: '450px',
-        overflowY: 'auto',
-        paddingRight: '5px'
-      }}
-    >
-      {images.map((clip) => {
-        const videoUrl = `${SUPABASE_STORAGE_URL}/${clip.chemin_fichier}`;
-
-        return (
+          {/* HISTORIQUE DES VIDÉOS */}
           <div
-            key={clip.id}
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
+            className="dashboard-card bracket full-width"
+            style={{ marginTop: '20px' }}
           >
-            <video
-              src={videoUrl}
-              controls
-              preload="metadata"
-              style={{ width: '100%', height: '160px', objectFit: 'cover', backgroundColor: '#000' }}
-            />
-            <div style={{ padding: '8px 10px' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
-                {clip.nom_fichier}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                {new Date(clip.date_creation).toLocaleString('fr-BE', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit'
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '15px'
+            }}>
+              <span className="label">
+                Historique des clips ({images.length}/10)
+              </span>
+
+              <span style={{
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)'
+              }}>
+                10 derniers clips enregistrés
+              </span>
+            </div>
+
+            {images.length === 0 ? (
+              <span className="empty-state">
+                Aucun clip disponible
+              </span>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                gap: '15px',
+                maxHeight: '450px',
+                overflowY: 'auto',
+                width: '100%'
+              }}>
+                {images.map((clip) => {
+                  const videoUrl = `${SUPABASE_STORAGE_URL}/${clip.chemin_fichier}`;
+
+                  return (
+                    <div
+                      key={clip.id}
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.04)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <video
+                        controls
+                        preload="metadata"
+                        playsInline
+                        src={videoUrl}
+                        onError={(e) => {
+                          console.error(
+                            "Erreur lecture vidéo :",
+                            clip.nom_fichier,
+                            e.currentTarget.error
+                          );
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          height: '170px',
+                          objectFit: 'contain',
+                          backgroundColor: '#000'
+                        }}
+                      />
+
+                      <div style={{ padding: '10px' }}>
+                        <div style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: 'var(--text)'
+                        }}>
+                          {clip.nom_fichier}
+                        </div>
+
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '4px'
+                        }}>
+                          {new Date(clip.date_creation).toLocaleString('fr-BE')}
+                        </div>
+                      </div>
+                    </div>
+                  );
                 })}
               </div>
-            </div>
+            )}
           </div>
-        );
-      })}
-    </div>
-  )}
-</div>
+
+        </div>
+      </div>
+    </>
+  );
+};
+
 export default Dashboard;
