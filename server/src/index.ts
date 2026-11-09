@@ -42,7 +42,7 @@ function setSessionCookie(res: express.Response, userId: string) {
 
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: false, // Temporaire : ton site utilise HTTP
+    secure: false, // Temporaire HTTP
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000,
@@ -137,11 +137,10 @@ app.get("/api/me", async (req, res) => {
   if (!userId) return res.status(401).json({ error: "Non connecté." });
   
   try {
-    // On cherche l'utilisateur, et s'il est dans une famille, on cherche le pseudo du chef de cette famille
     const result = await pool.query(`
       SELECT 
         u."id_Ut", u.pseudo, u.mail, 
-        f."id_Famille",
+        f."id_Famille", f."Type_Membre",
         chef.pseudo as famille
       FROM "Utilisateurs" u
       LEFT JOIN "Famille" f ON u."id_Ut" = f."id_Ut"
@@ -158,7 +157,9 @@ app.get("/api/me", async (req, res) => {
       pseudo: user.pseudo, 
       mail: user.mail, 
       isAdmin: await isAdmin(userId), 
-      famille: user.famille 
+      famille: user.famille,
+      isChef: user.Type_Membre === 1 || user.Type_Membre === '1',
+      hasFamily: user.id_Famille !== null
     });
   } catch (err) {
     console.error(err);
@@ -171,42 +172,32 @@ app.post("/api/family/add", async (req, res) => {
   if (!userId) return res.status(401).json({ error: "Non connecté." });
 
   const { pseudo } = req.body ?? {};
-  if (!pseudo || typeof pseudo !== "string" || !pseudo.trim()) {
-    return res.status(400).json({ error: "Pseudo invalide." });
-  }
+  if (!pseudo || typeof pseudo !== "string" || !pseudo.trim()) return res.status(400).json({ error: "Pseudo invalide." });
 
   try {
-    // 1. Chercher l'utilisateur cible
     const targetRes = await pool.query('SELECT "id_Ut", pseudo FROM "Utilisateurs" WHERE pseudo = $1', [pseudo.trim()]);
     const targetUser = targetRes.rows[0];
 
     if (!targetUser) return res.status(404).json({ error: "Utilisateur introuvable." });
     if (targetUser.id_Ut === userId) return res.status(400).json({ error: "Vous ne pouvez pas vous ajouter vous-même." });
 
-    // 2. Vérifier si l'utilisateur cible est déjà dans une famille
     const targetFamRes = await pool.query('SELECT 1 FROM "Famille" WHERE "id_Ut" = $1', [targetUser.id_Ut]);
     if (targetFamRes.rowCount! > 0) return res.status(400).json({ error: "Cet utilisateur est déjà dans une famille." });
 
-    // 3. Récupérer ou créer la famille pour l'utilisateur actuel
     let myFamRes = await pool.query('SELECT "id_Famille", "Type_Membre" FROM "Famille" WHERE "id_Ut" = $1', [userId]);
     let idFamille;
 
     if (myFamRes.rowCount === 0) {
-      // S'il n'a pas de famille, on en crée une
       idFamille = userId;
-      // On l'ajoute comme chef (Type_Membre = 1 par exemple)
       await pool.query('INSERT INTO "Famille" ("id_Ut", "id_Famille", "Type_Membre") VALUES ($1, $2, $3)', [userId, idFamille, 1]);
     } else {
       idFamille = myFamRes.rows[0].id_Famille;
-      // Vérifier s'il est bien le chef (Type_Membre === 1) pour avoir le droit d'inviter
       if (myFamRes.rows[0].Type_Membre !== '1' && myFamRes.rows[0].Type_Membre !== 1) {
          return res.status(403).json({ error: "Seul le chef de famille peut inviter des membres." });
       }
     }
 
-    // 4. Ajouter le nouveau membre à la famille (Type_Membre = 2 pour un membre classique)
     await pool.query('INSERT INTO "Famille" ("id_Ut", "id_Famille", "Type_Membre") VALUES ($1, $2, $3)', [targetUser.id_Ut, idFamille, 2]);
-
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -219,37 +210,64 @@ app.post("/api/family/remove", async (req, res) => {
   if (!userId) return res.status(401).json({ error: "Non connecté." });
 
   const { pseudo } = req.body ?? {};
-  if (!pseudo || typeof pseudo !== "string" || !pseudo.trim()) {
-    return res.status(400).json({ error: "Pseudo invalide." });
-  }
+  if (!pseudo || typeof pseudo !== "string" || !pseudo.trim()) return res.status(400).json({ error: "Pseudo invalide." });
 
   try {
-    // 1. Vérifier que celui qui fait la demande est bien le chef
     const myFamRes = await pool.query('SELECT "id_Famille", "Type_Membre" FROM "Famille" WHERE "id_Ut" = $1', [userId]);
     if (myFamRes.rowCount === 0 || (myFamRes.rows[0].Type_Membre !== 1 && myFamRes.rows[0].Type_Membre !== '1')) {
       return res.status(403).json({ error: "Seul le chef de famille peut retirer des membres." });
     }
     
     const idFamille = myFamRes.rows[0].id_Famille;
-
-    // 2. Trouver l'ID de l'utilisateur à supprimer
     const targetRes = await pool.query('SELECT "id_Ut" FROM "Utilisateurs" WHERE pseudo = $1', [pseudo.trim()]);
     if (targetRes.rowCount === 0) return res.status(404).json({ error: "Utilisateur introuvable." });
     
     const targetId = targetRes.rows[0].id_Ut;
     if (targetId === userId) return res.status(400).json({ error: "Vous ne pouvez pas vous retirer vous-même." });
 
-    // 3. Le supprimer de la table Famille
     const deleteRes = await pool.query('DELETE FROM "Famille" WHERE "id_Ut" = $1 AND "id_Famille" = $2', [targetId, idFamille]);
-    
-    if (deleteRes.rowCount === 0) {
-      return res.status(400).json({ error: "Ce membre n'est pas dans votre famille." });
-    }
+    if (deleteRes.rowCount === 0) return res.status(400).json({ error: "Ce membre n'est pas dans votre famille." });
 
     res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erreur lors de la suppression." });
+  }
+});
+
+app.post("/api/family/disband", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non connecté." });
+
+  try {
+    const myFamRes = await pool.query('SELECT "id_Famille", "Type_Membre" FROM "Famille" WHERE "id_Ut" = $1', [userId]);
+    if (myFamRes.rowCount === 0) return res.status(400).json({ error: "Vous n'êtes pas dans une famille." });
+    if (myFamRes.rows[0].Type_Membre !== '1' && myFamRes.rows[0].Type_Membre !== 1) {
+      return res.status(403).json({ error: "Seul le chef peut dissoudre la famille." });
+    }
+    
+    await pool.query('DELETE FROM "Famille" WHERE "id_Famille" = $1', [myFamRes.rows[0].id_Famille]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la dissolution." });
+  }
+});
+
+app.post("/api/family/leave", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non connecté." });
+
+  try {
+    const myFamRes = await pool.query('SELECT "id_Famille", "Type_Membre" FROM "Famille" WHERE "id_Ut" = $1', [userId]);
+    if (myFamRes.rowCount === 0) return res.status(400).json({ error: "Vous n'êtes pas dans une famille." });
+    if (myFamRes.rows[0].Type_Membre === '1' || myFamRes.rows[0].Type_Membre === 1) {
+      return res.status(400).json({ error: "Le chef ne peut pas quitter la famille (utilisez dissoudre)." });
+    }
+    
+    await pool.query('DELETE FROM "Famille" WHERE "id_Ut" = $1', [userId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors du départ de la famille." });
   }
 });
 
