@@ -12,6 +12,9 @@ import {
 import AccountManager from './AccountManager';
 import SuiviMue from './suiviMue';
 
+
+const SUPABASE_STORAGE_URL = "https://eimlzbkakcjlletqxoks.supabase.co/storage/v1/object/public/clips";
+
 interface Capteur {
   id_mesure: number;
   temperature: number | null;
@@ -21,8 +24,11 @@ interface Capteur {
 }
 
 interface ImageHistorique {
-  id_img: number;
-  image: string; /*pas sur du type pour l'image*/
+  id: number;
+  date_creation: string;
+  nom_fichier?: string;
+  chemin_fichier: string;
+  url?: string;
 }
 
 const PLAGES = {
@@ -391,20 +397,79 @@ const Dashboard = () => {
 
           <SuiviMue canEdit={canEdit} />
 
-          {/* Historique images : conservé */}
-          <div className="dashboard-card bracket full-width">
-            <span className="label">Historique images</span>
+          {/* Historique des captures / vidéos */}
+          <div className="dashboard-card bracket full-width" style={{ marginTop: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <span className="label" style={{ fontSize: '1.1rem' }}>Historique des clips ({images.length}/10)</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>10 derniers clips enregistrés</span>
+            </div>
 
-            <span className="empty-state">
-              {images.length
-                  ? `${images.length} images enregistrées`
-                  : 'Aucune donnée'}
-            </span>
+            {images.length === 0 ? (
+                <span className="empty-state">Aucun clip enregistré pour le moment</span>
+            ) : (
+                <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                      gap: '15px',
+                      width: '100%',
+                      maxHeight: '480px',
+                      overflowY: 'auto',
+                      paddingRight: '5px'
+                    }}
+                >
+                  {images.map((item) => {
+                    // Détermine l'URL complète vers le Storage
+                    const fileUrl = item.url ?? `${SUPABASE_STORAGE_URL}/${item.chemin_fichier}`;
+                    const isVideo = item.chemin_fichier?.endsWith('.mp4') || fileUrl.includes('.mp4');
+
+                    return (
+                        <div
+                            key={item.id}
+                            style={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border)',
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column'
+                            }}
+                        >
+                          {isVideo ? (
+                              <video
+                                  src={fileUrl}
+                                  controls
+                                  preload="metadata"
+                                  style={{ width: '100%', height: '170px', objectFit: 'cover', backgroundColor: '#000' }}
+                              />
+                          ) : (
+                              <img
+                                  src={fileUrl}
+                                  alt={item.nom_fichier ?? `Capture ${item.id}`}
+                                  style={{ width: '100%', height: '170px', objectFit: 'cover' }}
+                              />
+                          )}
+
+                          <div style={{ padding: '10px', fontSize: '0.85rem' }}>
+                            <div style={{ color: 'var(--text)', fontWeight: 600 }}>
+                              {item.nom_fichier ?? `Clip #${item.id}`}
+                            </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px' }}>
+                              {new Date(item.date_creation).toLocaleString('fr-BE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                    );
+                  })}
+                </div>
+            )}
           </div>
-        </div>
-      </div>
-    </>
-  );
-};
 
 export default Dashboard;

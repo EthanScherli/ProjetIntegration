@@ -28,6 +28,22 @@ app.get("/api/db-check", async (_req, res) => {
   res.json(result.rows[0]);
 });
 
+app.get('/api/historique-images', async (req, res) => {
+  try {
+
+    const result = await pool.query(
+        `SELECT id, date_creation, id_cam, nom_fichier, chemin_fichier, "id_Ut"
+       FROM "Historique"
+       ORDER BY date_creation DESC
+       LIMIT 10`
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erreur SQL Historique :', err);
+    res.status(500).json({ error: 'Erreur lors de la récupération de l’historique' });
+  }
+});
 
 function setSessionCookie(res: express.Response, userId: string) {
   if (!JWT_SECRET) {
