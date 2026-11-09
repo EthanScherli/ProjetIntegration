@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 
+interface SuiviMueProps {
+  canEdit?: boolean;
+}
+
 interface Mue {
   id_mue: number;
   date_debut: string;
@@ -7,87 +11,87 @@ interface Mue {
   statut: 'EN_COURS' | 'TERMINEE';
 }
 
-export const SuiviMue = () => {
+export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
   const [mueActive, setMueActive] = useState<Mue | null>(null);
   const [historique, setHistorique] = useState<Mue[]>([]);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState('');
 
-const chargerMueActive = async () => {
-  setChargement(true);
-  setErreur('');
-  try {
-    const reponse = await fetch('/api/mue/active');
-    if (!reponse.ok) {
-      setErreur('Erreur lors du chargement de la mue');
-      return;
-    }
-    const data = await reponse.json();
-    setMueActive(data);
-  } catch {
-    setErreur('Impossible de contacter le serveur');
-  } finally {
-    setChargement(false);
-  }
-};
-
-const chargerHistorique = async () => {
-  try {
-    const reponse = await fetch('/api/mue/historique');
-    if (reponse.ok) {
+  const chargerMueActive = async () => {
+    setChargement(true);
+    setErreur('');
+    try {
+      const reponse = await fetch('/api/mue/active');
+      if (!reponse.ok) {
+        setErreur('Erreur lors du chargement de la mue');
+        return;
+      }
       const data = await reponse.json();
-      // 1. Sécurité : Toujours s'assurer qu'il s'agit d'un tableau
-      setHistorique(Array.isArray(data) ? data : []);
+      setMueActive(data);
+    } catch {
+      setErreur('Impossible de contacter le serveur');
+    } finally {
+      setChargement(false);
     }
-  } catch {
-    console.error("Erreur lors de la récupération de l'historique");
-  }
-};
+  };
 
-useEffect(() => {
-  chargerMueActive();
-  chargerHistorique();
-}, []);
-
-const demarrerMue = async () => {
-  setChargement(true);
-  setErreur('');
-  try {
-    const reponse = await fetch('/api/mue/demarrer', { method: 'POST' });
-    if (!reponse.ok) {
-      // 2. Affiche le message d'erreur exact envoyé par le backend Express
-      const dataErr = await reponse.json();
-      throw new Error(dataErr.error || 'Impossible de démarrer la mue');
+  const chargerHistorique = async () => {
+    try {
+      const reponse = await fetch('/api/mue/historique');
+      if (reponse.ok) {
+        const data = await reponse.json();
+        // 1. Sécurité : Toujours s'assurer qu'il s'agit d'un tableau
+        setHistorique(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      console.error("Erreur lors de la récupération de l'historique");
     }
-    await chargerMueActive();
-    await chargerHistorique();
-  } catch (err: any) {
-    setErreur(err.message || 'Impossible de démarrer la mue');
-    setChargement(false);
-  }
-};
+  };
 
-const terminerMue = async () => {
-  if (!mueActive) return;
-  setChargement(true);
-  setErreur('');
-  try {
-    const reponse = await fetch('/api/mue/terminer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_mue: mueActive.id_mue }),
-    });
-    if (!reponse.ok) {
-      const dataErr = await reponse.json();
-      throw new Error(dataErr.error || 'Impossible de terminer la mue');
+  useEffect(() => {
+    chargerMueActive();
+    chargerHistorique();
+  }, []);
+
+  const demarrerMue = async () => {
+    setChargement(true);
+    setErreur('');
+    try {
+      const reponse = await fetch('/api/mue/demarrer', { method: 'POST' });
+      if (!reponse.ok) {
+        // 2. Affiche le message d'erreur exact envoyé par le backend Express
+        const dataErr = await reponse.json();
+        throw new Error(dataErr.error || 'Impossible de démarrer la mue');
+      }
+      await chargerMueActive();
+      await chargerHistorique();
+    } catch (err: any) {
+      setErreur(err.message || 'Impossible de démarrer la mue');
+      setChargement(false);
     }
-    await chargerMueActive();
-    await chargerHistorique();
-  } catch (err: any) {
-    setErreur(err.message || 'Impossible de terminer la mue');
-    setChargement(false);
-  }
-};
+  };
+
+  const terminerMue = async () => {
+    if (!mueActive) return;
+    setChargement(true);
+    setErreur('');
+    try {
+      const reponse = await fetch('/api/mue/terminer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_mue: mueActive.id_mue }),
+      });
+      if (!reponse.ok) {
+        const dataErr = await reponse.json();
+        throw new Error(dataErr.error || 'Impossible de terminer la mue');
+      }
+      await chargerMueActive();
+      await chargerHistorique();
+    } catch (err: any) {
+      setErreur(err.message || 'Impossible de terminer la mue');
+      setChargement(false);
+    }
+  };
 
   // Calcul du délai moyen entre 2 mues
   const calculerDelaiMoyen = (): number | null => {
@@ -135,14 +139,17 @@ const terminerMue = async () => {
 
         <button
           className="account-btn mue-btn"
-          disabled={chargement}
+          disabled={chargement || !canEdit}
           onClick={mueActive ? terminerMue : demarrerMue}
+          style={{
+            opacity: canEdit ? 1 : 0.5,
+            cursor: canEdit ? (chargement ? 'wait' : 'pointer') : 'not-allowed',
+          }}
         >
           {chargement ? 'Chargement...' : mueActive ? 'Terminer la mue' : 'Déclarer une mue'}
         </button>
       </div>
 
-      
       <div className="mue-stat-card">
         <span className="mue-stat-label">Fréquence moyenne entre 2 mues :</span>
         <span className="mue-stat-valeur">

@@ -80,8 +80,28 @@ const Dashboard = () => {
   const [capteurs, setCapteurs] = useState<Capteur[]>([]);
   const [images, setImages] = useState<ImageHistorique[]>([]);
   const [error, setError] = useState('');
+  const [canEdit, setCanEdit] = useState(true);
   const [periode, setPeriode] = useState<'24h' | 'week'>('24h');
   const [camError, setCamError] = useState(false); // la camera
+
+  // --- NOUVEAU : Vérification des droits utilisateur au chargement ---
+  useEffect(() => {
+    const fetchRights = async () => {
+      try {
+        const resUser = await fetch('/api/me');
+        if (resUser.ok) {
+          const userData = await resUser.json();
+          // L'utilisateur peut modifier s'il est chef ou s'il n'est dans aucune famille
+          setCanEdit(userData.isChef || !userData.hasFamily);
+        }
+      } catch (err) {
+        console.error("Erreur lors de la vérification des droits :", err);
+      }
+    };
+    fetchRights();
+  }, []);
+  // ------------------------------------------------------------------
+
   // Récupération des capteurs selon la période choisie
   useEffect(() => {
     const recupCapteurs = async () => {
@@ -369,7 +389,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <SuiviMue/>
+          <SuiviMue canEdit={canEdit} />
 
           {/* Historique images : conservé */}
           <div className="dashboard-card bracket full-width">
