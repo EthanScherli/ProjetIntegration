@@ -31,9 +31,6 @@ const AccountManager = ({ onClose }: AccountManagerProps) => {
     fetchUserAndFamily();
   }, []);
 
-  // Détermine si l'utilisateur actuel est le chef
-  const currentUserIsChef = familyMembers.some(m => m.pseudo === userInfo?.pseudo && m.isChef);
-
   const handleAddFamily = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -56,27 +53,53 @@ const AccountManager = ({ onClose }: AccountManagerProps) => {
     }
   };
 
-  const handleRemoveMember = async (pseudoToRemove: string) => {
-    if (!window.confirm(`Voulez-vous vraiment retirer ${pseudoToRemove} de la famille ?`)) return;
-    
+  const handleRemoveMember = async (targetPseudo: string) => {
+    if (!window.confirm(`Voulez-vous vraiment retirer ${targetPseudo} de la famille ?`)) return;
     try {
       const response = await fetch('/api/family/remove', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pseudo: pseudoToRemove }),
+        body: JSON.stringify({ pseudo: targetPseudo }),
       });
-
       if (response.ok) {
-        setMessage(`${pseudoToRemove} a été retiré.`);
-        fetchUserAndFamily(); // Rafraîchit la liste
+        setMessage(`${targetPseudo} a été retiré de la famille.`);
+        fetchUserAndFamily();
       } else {
         const data = await response.json().catch(() => ({}));
         setMessage(data.error ?? "Erreur lors de la suppression.");
       }
-    } catch (err) {
-      setMessage("Impossible de joindre le serveur.");
-    }
+    } catch (err) { setMessage("Impossible de joindre le serveur."); }
   };
+
+  const handleDisbandFamily = async () => {
+    if (!window.confirm("⚠ Voulez-vous vraiment dissoudre la famille ? Tous les membres perdront l'accès.")) return;
+    try {
+      const response = await fetch('/api/family/disband', { method: 'POST' });
+      if (response.ok) {
+        setMessage("La famille a été dissoute.");
+        setFamilyMembers([]);
+        fetchUserAndFamily();
+      } else {
+        setMessage("Erreur lors de la dissolution.");
+      }
+    } catch (err) { setMessage("Impossible de joindre le serveur."); }
+  };
+
+  const handleLeaveFamily = async () => {
+    if (!window.confirm("⚠ Voulez-vous vraiment quitter cette famille ? Vous perdrez l'accès au vivarium.")) return;
+    try {
+      const response = await fetch('/api/family/leave', { method: 'POST' });
+      if (response.ok) {
+        setMessage("Vous avez quitté la famille.");
+        setFamilyMembers([]);
+        fetchUserAndFamily();
+      } else {
+        setMessage("Erreur lors du départ.");
+      }
+    } catch (err) { setMessage("Impossible de joindre le serveur."); }
+  };
+
+  const isCurrentUserChef = familyMembers.some(m => m.pseudo === userInfo?.pseudo && m.isChef);
 
   return (
     <div className="dashboard-container">
@@ -106,29 +129,41 @@ const AccountManager = ({ onClose }: AccountManagerProps) => {
             {familyMembers.map((member, index) => (
               <li key={index} className="dashboard-card bracket" style={{ minHeight: 'auto', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="user-pseudo">{member.pseudo}</span>
-                {member.isChef ? (
-                  <span className="user-badge" style={{ color: 'var(--live)', borderColor: 'var(--live)' }}>Chef</span>
-                ) : (
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {member.isChef ? (
+                    <span className="user-badge" style={{ color: 'var(--live)', borderColor: 'var(--live)' }}>Chef</span>
+                  ) : (
                     <span className="user-badge" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>Membre</span>
-                    {currentUserIsChef && (
-                      <button 
-                        onClick={() => handleRemoveMember(member.pseudo)}
-                        style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '1.5rem', cursor: 'pointer', lineHeight: '1' }}
-                        title="Retirer ce membre"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {isCurrentUserChef && !member.isChef && (
+                    <button 
+                      onClick={() => handleRemoveMember(member.pseudo)}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '1.25rem', padding: '0 4px', lineHeight: 1 }}
+                      title="Retirer ce membre"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
+
+          <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+            {isCurrentUserChef ? (
+              <button onClick={handleDisbandFamily} className="link-button" style={{ color: 'var(--danger)', width: 'auto' }}>
+                ⚠ Dissoudre la famille
+              </button>
+            ) : (
+              <button onClick={handleLeaveFamily} className="link-button" style={{ color: 'var(--danger)', width: 'auto' }}>
+                ⚠ Quitter la famille
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      {currentUserIsChef || familyMembers.length === 0 ? (
+      {(isCurrentUserChef || familyMembers.length === 0) && (
         <div style={{ marginTop: '2rem' }}>
           <span className="label">Ajouter à la famille</span>
           <form onSubmit={handleAddFamily} style={{ marginTop: '0.5rem' }}>
@@ -146,14 +181,14 @@ const AccountManager = ({ onClose }: AccountManagerProps) => {
               </button>
             </div>
           </form>
-          
-          {message && (
-            <div className={`msg ${message.includes('Erreur') || message.includes('Impossible') ? 'msg-error' : 'msg-success'}`} style={{ marginTop: '1rem' }}>
-              {message}
-            </div>
-          )}
         </div>
-      ) : null}
+      )}
+      
+      {message && (
+        <div className={`msg ${message.includes('Erreur') || message.includes('Impossible') ? 'msg-error' : 'msg-success'}`} style={{ marginTop: '1rem' }}>
+          {message}
+        </div>
+      )}
     </div>
   );
 };
