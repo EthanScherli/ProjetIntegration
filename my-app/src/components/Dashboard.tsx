@@ -24,13 +24,13 @@ interface Capteur {
 }
 
 interface ImageHistorique {
-  id: number;
+  id: string;
   date_creation: string;
-  nom_fichier?: string;
+  id_cam: string;
+  nom_fichier: string;
   chemin_fichier: string;
-  url?: string;
+  id_Ut: string;
 }
-
 const PLAGES = {
   temperature: { min: 24, max: 30, echelle: [0, 40] },
   humidite: { min: 60, max: 80, echelle: [0, 100] },
@@ -398,78 +398,64 @@ const Dashboard = () => {
           <SuiviMue canEdit={canEdit} />
 
           {/* Historique des captures / vidéos */}
-          <div className="dashboard-card bracket full-width" style={{ marginTop: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <span className="label" style={{ fontSize: '1.1rem' }}>Historique des clips ({images.length}/10)</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>10 derniers clips enregistrés</span>
+<div className="dashboard-card bracket full-width" style={{ marginTop: '20px' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+    <span className="label">Historique des clips ({images.length}/10)</span>
+    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Utilisateur 14</span>
+  </div>
+
+  {images.length === 0 ? (
+    <span className="empty-state">Aucun clip disponible</span>
+  ) : (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: '15px',
+        maxHeight: '450px',
+        overflowY: 'auto',
+        paddingRight: '5px'
+      }}
+    >
+      {images.map((clip) => {
+        const videoUrl = `${SUPABASE_STORAGE_URL}/${clip.chemin_fichier}`;
+
+        return (
+          <div
+            key={clip.id}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <video
+              src={videoUrl}
+              controls
+              preload="metadata"
+              style={{ width: '100%', height: '160px', objectFit: 'cover', backgroundColor: '#000' }}
+            />
+            <div style={{ padding: '8px 10px' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
+                {clip.nom_fichier}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {new Date(clip.date_creation).toLocaleString('fr-BE', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
+              </div>
             </div>
-
-            {images.length === 0 ? (
-                <span className="empty-state">Aucun clip enregistré pour le moment</span>
-            ) : (
-                <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                      gap: '15px',
-                      width: '100%',
-                      maxHeight: '480px',
-                      overflowY: 'auto',
-                      paddingRight: '5px'
-                    }}
-                >
-                  {images.map((item) => {
-                    // Détermine l'URL complète vers le Storage
-                    const fileUrl = item.url ?? `${SUPABASE_STORAGE_URL}/${item.chemin_fichier}`;
-                    const isVideo = item.chemin_fichier?.endsWith('.mp4') || fileUrl.includes('.mp4');
-
-                    return (
-                        <div
-                            key={item.id}
-                            style={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                              borderRadius: '8px',
-                              border: '1px solid var(--border)',
-                              overflow: 'hidden',
-                              display: 'flex',
-                              flexDirection: 'column'
-                            }}
-                        >
-                          {isVideo ? (
-                              <video
-                                  src={fileUrl}
-                                  controls
-                                  preload="metadata"
-                                  style={{ width: '100%', height: '170px', objectFit: 'cover', backgroundColor: '#000' }}
-                              />
-                          ) : (
-                              <img
-                                  src={fileUrl}
-                                  alt={item.nom_fichier ?? `Capture ${item.id}`}
-                                  style={{ width: '100%', height: '170px', objectFit: 'cover' }}
-                              />
-                          )}
-
-                          <div style={{ padding: '10px', fontSize: '0.85rem' }}>
-                            <div style={{ color: 'var(--text)', fontWeight: 600 }}>
-                              {item.nom_fichier ?? `Clip #${item.id}`}
-                            </div>
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px' }}>
-                              {new Date(item.date_creation).toLocaleString('fr-BE', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit'
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                    );
-                  })}
-                </div>
-            )}
           </div>
-
+        );
+      })}
+    </div>
+  )}
+</div>
 export default Dashboard;
