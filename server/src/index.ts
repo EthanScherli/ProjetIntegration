@@ -329,8 +329,13 @@ app.get("/api/donnees-capteurs/24h", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT temperature, luminosite, humidite, created_at
-      FROM "Donnees_Capteurs"
-      WHERE "id_Ut" = $1
+      FROM "Donnees_Capteurs" as dc
+      JOIN "Famille" as f ON dc."id_Ut" = f."id_Ut" 
+      WHERE f."id_Famille" = (
+        SELECT "id_Famille"
+        FROM "Famille"
+        WHERE "id_Ut" = $1      
+      )
       AND created_at >= NOW() - INTERVAL '24 hours'
       ORDER BY created_at ASC
     `, [userId]);
@@ -353,8 +358,13 @@ app.get("/api/donnees-capteurs/week", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT temperature, luminosite, humidite, created_at
-      FROM "Donnees_Capteurs"
-      WHERE "id_Ut" = $1
+      FROM "Donnees_Capteurs" as dc
+      JOIN "Famille" as f ON dc."id_Ut" = f."id_Ut" 
+      WHERE f."id_Famille" = (
+        SELECT "id_Famille"
+        FROM "Famille"
+        WHERE "id_Ut" = $1      
+      )
       AND created_at >= NOW() - INTERVAL '7 days'
       ORDER BY created_at ASC
     `, [userId]);
