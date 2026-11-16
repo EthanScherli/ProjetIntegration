@@ -13,11 +13,13 @@ RELAIS_CHAUFFAGE_PIN = 14
 LIGHT_SENSOR_PIN = 26
 DHT_PIN = 11
 
+# Les heures deviennent des variables modifiables dynamiquement via Supabase
 HEURE_LEVER = 8
 HEURE_COUCHER = 20
 SEUIL_LUMINOSITE_PCT = 40
 OFFSET_HEURES = 2
 INTERVALLE_VERIFICATION = 5
+INTERVALLE_MAJ_PARAMETRES = 60  # Vérifie les nouveaux horaires sur Supabase toutes les 60s
 
 CHAUFFAGE_ACTIF = True
 CHAUFFAGE_ON = 1
@@ -87,6 +89,27 @@ def get_heure_locale():
     return t[3], t[4]
 
 
+def recuperer_parametres_db():
+    global HEURE_LEVER, HEURE_COUCHER
+    try:
+        headers = {
+            "apikey": config.API_KEY,
+            "Authorization": f"Bearer {config.API_KEY}"
+        }
+        # Interroge la table Supabase "Parametres" filtrée par l'ID utilisateur
+        url = f"{config.API_URL}/rest/v1/Parametres?id_Ut=eq.{config.ID_UT}&select=heure_lever,heure_coucher"
+        res = urequests.get(url, headers=headers)
+        
+        if res.status_code == 200:
+            data = res.json()
+            if len(data) > 0:
+                HEURE_LEVER = int(data[0].get('heure_lever', HEURE_LEVER))
+                HEURE_COUCHER = int(data[0].get('heure_coucher', HEURE_COUCHER))
+        res.close()
+    except Exception as e:
+        print("Erreur de récupération des paramètres :", e)
+
+
 def lire_dht():
     try:
         capteur_dht.measure()
@@ -127,6 +150,9 @@ def main():
     ip = connect_wifi()
     sync_time()
 
+    # Récupération initiale des paramètres de cycle au démarrage
+    recuperer_parametres_db()
+
     addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
     s = socket.socket()
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -136,6 +162,7 @@ def main():
     print(f"Serveur prêt à recevoir des commandes sur http://{ip}")
 
     derniere_verif_temps = 0
+    derniere_maj_parametres = time.time()
 
     while True:
         try:
@@ -162,6 +189,12 @@ def main():
             pass
 
         maintenant = time.time()
+
+        # Actualisation périodique des horaires depuis Supabase (toutes les 60s)
+        if maintenant - derniere_maj_parametres >= INTERVALLE_MAJ_PARAMETRES:
+            derniere_maj_parametres = maintenant
+            recuperer_parametres_db()
+
         if maintenant - derniere_verif_temps >= INTERVALLE_VERIFICATION:
             derniere_verif_temps = maintenant
             heure, minute = get_heure_locale()
@@ -205,7 +238,7 @@ def main():
                 elif not est_jour and lum_pourcentage > SEUIL_LUMINOSITE_PCT:
                     alerte_actuelle = "Trop lumineux la nuit"
 
-            print(f"[{heure:02d}:{minute:02d}] Auto: {mode_auto} | Relais: {relais.value()} | Lum: {lum_pourcentage}% | "
+            print(f"[{heure:02d}:{minute:02d}] (Cycle {HEURE_LEVER}h-{HEURE_COUCHER}h) Auto: {mode_auto} | Relais: {relais.value()} | Lum: {lum_pourcentage}% | "
                   f"Temp: {temp}°C | Hum: {hum}% | Chauffage: {'ON' if etat_chauffage else 'OFF'} | Alerte: {alerte_actuelle}")
 
             envoyer_donnees_db(temp, hum, lum_pourcentage, alerte_actuelle, relais.value(), mode_auto)

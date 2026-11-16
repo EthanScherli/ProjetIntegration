@@ -90,6 +90,11 @@ const Dashboard = () => {
   const [periode, setPeriode] = useState<'24h' | 'week'>('24h');
   const [camError, setCamError] = useState(false);
 
+  // États pour le cycle jour/nuit
+  const [heureLever, setHeureLever] = useState<number>(8);
+  const [heureCoucher, setHeureCoucher] = useState<number>(20);
+  const [paramMessage, setParamMessage] = useState('');
+
   // Vérification des droits utilisateur au chargement
   useEffect(() => {
     const fetchRights = async () => {
@@ -105,6 +110,47 @@ const Dashboard = () => {
     };
     fetchRights();
   }, []);
+
+  // Récupération des paramètres du cycle jour/nuit
+  useEffect(() => {
+    const recupParametres = async () => {
+      try {
+        const res = await fetch('/api/parametres', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            setHeureLever(data.heure_lever ?? 8);
+            setHeureCoucher(data.heure_coucher ?? 20);
+          }
+        }
+      } catch (err) {
+        console.error("Erreur récupération paramètres cycle :", err);
+      }
+    };
+    recupParametres();
+  }, []);
+
+  // Sauvegarde du cycle jour/nuit
+  const handleSaveCycle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/parametres', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          heure_lever: Number(heureLever),
+          heure_coucher: Number(heureCoucher),
+        }),
+      });
+      if (!res.ok) throw new Error('Erreur sauvegarde');
+      setParamMessage('Cycle mis à jour avec succès !');
+      setTimeout(() => setParamMessage(''), 3000);
+    } catch (err) {
+      console.error(err);
+      setParamMessage('Erreur lors de la mise à jour.');
+    }
+  };
 
   // Récupération des capteurs selon la période
   useEffect(() => {
@@ -158,7 +204,6 @@ const Dashboard = () => {
         clip.chemin_fichier.toLowerCase().endsWith('.mp4')
       );
 
-      // Met à jour l'état seulement si un nouveau clip apparaît pour préserver le lecteur vidéo
       setImages((anciennesImages) => {
         if (
           anciennesImages.length === videosValides.length &&
@@ -283,6 +328,86 @@ const Dashboard = () => {
               onError={() => setCamError(true)}
               onLoad={() => setCamError(false)}
             />
+          </div>
+
+          {/* CARTE DE REGLAGE DU CYCLE JOUR / NUIT CORRIGÉE */}
+          <div className="dashboard-card bracket" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <span className="label" style={{ marginBottom: '15px', display: 'block' }}>
+              Cycle Jour / Nuit
+            </span>
+            <form onSubmit={handleSaveCycle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      HEURE DE LEVER (0-23h)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    value={heureLever}
+                    onChange={(e) => setHeureLever(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      color: 'var(--text)',
+                      textAlign: 'center'
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      HEURE DE COUCHER (0-23h)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    value={heureCoucher}
+                    onChange={(e) => setHeureCoucher(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '4px',
+                      color: 'var(--text)',
+                      textAlign: 'center'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '5px' }}>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 14px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600
+                  }}
+                >
+                  Enregistrer
+                </button>
+                {paramMessage && (
+                  <span style={{ fontSize: '0.75rem', color: paramMessage.includes('succès') ? '#22c55e' : '#ef4444' }}>
+                    {paramMessage}
+                  </span>
+                )}
+              </div>
+            </form>
           </div>
 
           <div className="climate-chart">

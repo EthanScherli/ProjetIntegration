@@ -510,3 +510,70 @@ app.get("/api/mue/historique", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API démarrée sur le port ${PORT}`);
 });
+
+// ==========================================
+// ROUTES POUR LE CYCLE JOUR / NUIT
+// ==========================================
+
+app.get("/api/parametres", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non connecté." });
+
+  try {
+    const result = await pool.query(
+      'SELECT heure_lever, heure_coucher FROM "Parametres" WHERE "id_Ut" = $1 LIMIT 1',
+      [userId]
+    );
+    
+    // Si aucun paramètre n'existe encore pour cet utilisateur, on renvoie des valeurs par défaut
+    if (result.rows.length === 0) {
+      return res.json({ heure_lever: 8, heure_coucher: 20 });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Erreur lecture paramètres :", err);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
+});
+
+app.put("/api/parametres", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non connecté." });
+
+  const { heure_lever, heure_coucher } = req.body ?? {};
+
+  if (
+    typeof heure_lever !== "number" ||
+    typeof heure_coucher !== "number" ||
+    heure_lever < 0 || heure_lever > 23 ||
+    heure_coucher < 0 || heure_coucher > 23
+  ) {
+    return res.status(400).json({ error: "Heures invalides (doivent être comprises entre 0 et 23)." });
+  }
+
+  try {
+    // Vérifie si une ligne existe déjà pour cet utilisateur
+    const checkRes = await pool.query('SELECT id_parametre FROM "Parametres" WHERE "id_Ut" = $1', [userId]);
+
+    let result;
+    if (checkRes.rows.length > 0) {
+      // Mise à jour si la ligne existe
+      result = await pool.query(
+        'UPDATE "Parametres" SET heure_lever = $1, heure_coucher = $2 WHERE "id_Ut" = $3 RETURNING *',
+        [heure_lever, heure_coucher, userId]
+      );
+    } else {
+      // Insertion si elle n'existe pas encore
+      result = await pool.query(
+        'INSERT INTO "Parametres" (heure_lever, heure_coucher, "id_Ut") VALUES ($1, $2, $3) RETURNING *',
+        [heure_lever, heure_coucher, userId]
+      );
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    console.error("Erreur mise à jour paramètres :", err);
+    res.status(500).json({ error: "Erreur serveur." });
+  }
+});
