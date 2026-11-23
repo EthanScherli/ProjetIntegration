@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { pool } from "./db.js";
+import http from "http";
 
 const app = express();
 
@@ -11,6 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 const COOKIE_NAME = "token";
 const SESSION_DAYS = 7;
 const PORT = Number(process.env.PORT) || 3000;
+const USER_ID = Number(process.env.USER_ID);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -43,6 +45,34 @@ app.get('/api/historique-images', async (req, res) => {
     console.error('Erreur SQL Historique :', err);
     res.status(500).json({ error: 'Erreur lors de la récupération de l’historique' });
   }
+});
+
+app.get("/flux-cam", (req, res) => {
+  const userId = getSessionUserId(req);
+
+  if (!userId) {
+    return res.status(401).send("Non connecté.");
+  }
+
+  if (!USER_ID || Number(userId) !== USER_ID) {
+    return res.status(403).send("Accès réservé à l'utilisateur autorisé.");
+  }
+
+  const camReq = http.get("http://172.18.0.1:8081/", (camRes) => {
+    res.writeHead(camRes.statusCode || 200, camRes.headers);
+    camRes.pipe(res);
+  });
+
+  camReq.on("error", (err) => {
+    console.error("Erreur connexion caméra :", err.message);
+    if (!res.headersSent) {
+      res.status(502).send("Caméra hors ligne.");
+    }
+  });
+
+  req.on("close", () => {
+    camReq.destroy();
+  });
 });
 
 function setSessionCookie(res: express.Response, userId: string) {
