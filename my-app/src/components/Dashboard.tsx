@@ -253,6 +253,12 @@ const Dashboard = () => {
     luminosite: c.luminosite,
   }));
 
+  const heureActuelle = new Date().getHours();
+  const estJour =
+    heureLever < heureCoucher
+      ? heureActuelle >= heureLever && heureActuelle < heureCoucher
+      : heureActuelle >= heureLever || heureActuelle < heureCoucher;
+
   return (
     <>
       <button className="account-btn" onClick={() => setShowAccount(true)}>
@@ -330,82 +336,139 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* CARTE DE REGLAGE DU CYCLE JOUR / NUIT CORRIGÉE */}
-          <div className="dashboard-card bracket" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <span className="label" style={{ marginBottom: '15px', display: 'block' }}>
-              Cycle Jour / Nuit
-            </span>
-            <form onSubmit={handleSaveCycle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      HEURE DE LEVER (0-23h)
-                    </label>
-                  </div>
+          {/* CARTE DE REGLAGE DU CYCLE JOUR / NUIT PLEINE LARGEUR */}
+          <div
+            className="dashboard-card bracket full-width"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <span className="label">Cycle Jour / Nuit</span>
+              <span className={`status ${estJour ? 'status-ok' : 'status-off'}`}>
+                {estJour ? 'JOUR' : 'NUIT'} · {String(heureLever).padStart(2, '0')}H-{String(heureCoucher).padStart(2, '0')}H
+              </span>
+            </div>
+
+            <form
+              onSubmit={handleSaveCycle}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                gap: '14px',
+                width: '100%',
+              }}
+            >
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(120px, 180px))',
+                  gap: '12px',
+                  flex: '1 1 260px',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label
+                    htmlFor="heure-lever"
+                    style={{ fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em' }}
+                  >
+                    LEVER (0-23H)
+                  </label>
                   <input
+                    id="heure-lever"
                     type="number"
                     min="0"
                     max="23"
+                    disabled={!canEdit}
                     value={heureLever}
                     onChange={(e) => setHeureLever(Number(e.target.value))}
                     style={{
                       width: '100%',
-                      padding: '8px',
-                      background: 'rgba(255,255,255,0.05)',
+                      padding: '8px 10px',
+                      background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       borderRadius: '4px',
                       color: 'var(--text)',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      fontWeight: 600,
                     }}
                   />
                 </div>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      HEURE DE COUCHER (0-23h)
-                    </label>
-                  </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <label
+                    htmlFor="heure-coucher"
+                    style={{ fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em' }}
+                  >
+                    COUCHER (0-23H)
+                  </label>
                   <input
+                    id="heure-coucher"
                     type="number"
                     min="0"
                     max="23"
+                    disabled={!canEdit}
                     value={heureCoucher}
                     onChange={(e) => setHeureCoucher(Number(e.target.value))}
                     style={{
                       width: '100%',
-                      padding: '8px',
-                      background: 'rgba(255,255,255,0.05)',
+                      padding: '8px 10px',
+                      background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       borderRadius: '4px',
                       color: 'var(--text)',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      fontWeight: 600,
                     }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '5px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '12px',
+                  flex: '1 1 220px',
+                }}
+              >
+                {paramMessage ? (
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      color: paramMessage.includes('succès') ? '#22c55e' : '#ef4444',
+                    }}
+                  >
+                    {paramMessage}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {canEdit ? 'Plage horaire active' : 'Lecture seule'}
+                  </span>
+                )}
+
                 <button
                   type="submit"
+                  disabled={!canEdit}
                   style={{
-                    padding: '8px 14px',
+                    padding: '8px 16px',
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
                     borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: 600
+                    cursor: canEdit ? 'pointer' : 'not-allowed',
+                    opacity: canEdit ? 1 : 0.6,
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
                   }}
                 >
                   Enregistrer
                 </button>
-                {paramMessage && (
-                  <span style={{ fontSize: '0.75rem', color: paramMessage.includes('succès') ? '#22c55e' : '#ef4444' }}>
-                    {paramMessage}
-                  </span>
-                )}
               </div>
             </form>
           </div>
