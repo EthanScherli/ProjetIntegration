@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="749ba25d-f6e7-4262-9812-1417f5edffa4" name="Changes" comment="modification des routes pour que ca fonctionne en prod">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/server/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/my-app/src/components/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/my-app/src/components/Dashboard.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,7 +55,7 @@
       <updated>1793730305715</updated>
       <workItem from="1793730306839" duration="4484000" />
       <workItem from="1794238588242" duration="6271000" />
-      <workItem from="1795462430136" duration="253000" />
+      <workItem from="1795462430136" duration="888000" />
     </task>
     <task id="LOCAL-00001" summary="modification des routes pour que ca fonctionne en prod">
       <option name="closed" value="true" />
