@@ -102,6 +102,7 @@ const SensorCard = ({ label, unite, valeur, plage }: SensorCardProps) => {
 
 const Dashboard = () => {
   const [showAccount, setShowAccount] = useState(false);
+  const [userPseudo, setUserPseudo] = useState<string>('');
 
   const [capteurs, setCapteurs] = useState<Capteur[]>([]);
   const [images, setImages] = useState<ImageHistorique[]>([]);
@@ -115,7 +116,7 @@ const Dashboard = () => {
   const [heureCoucher, setHeureCoucher] = useState<number>(20);
   const [paramMessage, setParamMessage] = useState('');
 
-  // Vérification des droits utilisateur au chargement
+  // Vérification des droits utilisateur et récupération du pseudo au chargement
   useEffect(() => {
     const fetchRights = async () => {
       try {
@@ -123,6 +124,9 @@ const Dashboard = () => {
         if (resUser.ok) {
           const userData = await resUser.json();
           setCanEdit(userData.isChef || !userData.hasFamily);
+          if (userData.pseudo) {
+            setUserPseudo(userData.pseudo);
+          }
         }
       } catch (err) {
         console.error("Erreur lors de la vérification des droits :", err);
@@ -288,430 +292,451 @@ const Dashboard = () => {
   }));
 
   return (
-    <>
-      <button className="account-btn" onClick={() => setShowAccount(true)}>
-        Gestion du compte
-      </button>
+    <div className="dashboard-container">
+      <div className="top-bar">
+        <button className="account-btn" onClick={() => setShowAccount(true)}>
+          <span className="account-dot" />
+          {userPseudo ? (
+            <>
+              <span>{userPseudo}</span>
+              <span className="account-separator">·</span>
+              <span>Compte</span>
+            </>
+          ) : (
+            'Gestion du compte'
+          )}
+        </button>
+      </div>
 
-      <div className="dashboard-container">
-        <header className="screen-header">
-          <span className="screen-tag">// Vivarium-01</span>
-          <h2>Surveillance</h2>
-        </header>
+      <header className="screen-header">
+        <span className="screen-tag">// Vivarium-01</span>
+        <h2>Surveillance</h2>
+      </header>
 
-        {error && <div className="msg msg-error">{error}</div>}
+      {error && <div className="msg msg-error">{error}</div>}
 
-        <section className="comfort bracket">
-          <span className="label">Indice de confort</span>
-          <span className="comfort-value" key={confort ?? 'off'}>
-            {confort ?? '--'}<small>%</small>
+      <section className="comfort bracket">
+        <span className="label">Indice de confort</span>
+        <span className="comfort-value" key={confort ?? 'off'}>
+          {confort ?? '--'}<small>%</small>
+        </span>
+      </section>
+
+      <div className="dashboard-grid">
+        <SensorCard
+          label="Température"
+          unite="°C"
+          valeur={derniere?.temperature}
+          plage={plagesActuelles.temperature}
+        />
+
+        <SensorCard
+          label="Humidité"
+          unite="%"
+          valeur={derniere?.humidite}
+          plage={plagesActuelles.humidite}
+        />
+
+        <SensorCard
+          label="Luminosité"
+          unite="%"
+          valeur={derniere?.luminosite}
+          plage={plagesActuelles.luminosite}
+        />
+
+        <div
+          className="dashboard-card bracket cam-card"
+          style={{ position: 'relative', overflow: 'hidden', padding: 0 }}
+        >
+          <span className="cam-scan" style={{ zIndex: 2 }} />
+
+          <span className="label" style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 2 }}>
+            <span className="rec-dot" /> Cam 01
           </span>
-        </section>
 
-        <div className="dashboard-grid">
-          <SensorCard
-            label="Température"
-            unite="°C"
-            valeur={derniere?.temperature}
-            plage={plagesActuelles.temperature}
-          />
-
-          <SensorCard
-            label="Humidité"
-            unite="%"
-            valeur={derniere?.humidite}
-            plage={plagesActuelles.humidite}
-          />
-
-          <SensorCard
-            label="Luminosité"
-            unite="%"
-            valeur={derniere?.luminosite}
-            plage={plagesActuelles.luminosite}
-          />
-
-          <div
-              className="dashboard-card bracket cam-card"
-              style={{position: 'relative', overflow: 'hidden', padding: 0}}
-          >
-            <span className="cam-scan" style={{zIndex: 2}}/>
-
-            <span className="label" style={{position: 'absolute', top: '10px', left: '10px', zIndex: 2}}>
-              <span className="rec-dot"/> Cam 01
+          {camError && (
+            <span
+              className="label status-off blink"
+              style={{ position: 'absolute', bottom: '10px', right: '10px', zIndex: 2 }}
+            >
+              Pas de signal
             </span>
+          )}
 
-            {camError && (
-                <span className="label status-off blink"
-                      style={{position: 'absolute', bottom: '10px', right: '10px', zIndex: 2}}>
-                Pas de signal
-              </span>
-            )}
+          <img
+            src="/flux-cam"
+            alt="Flux direct vivarium"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              zIndex: 1,
+              display: camError ? 'none' : 'block',
+            }}
+            onError={() => setCamError(true)}
+            onLoad={() => setCamError(false)}
+          />
+        </div>
 
-            <img
-                src="/flux-cam"
-                alt="Flux direct vivarium"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  zIndex: 1,
-                  display: camError ? 'none' : 'block'
-                }}
-                onError={() => setCamError(true)}
-                onLoad={() => setCamError(false)}
-            />
+        {/* CARTE DE REGLAGE DU CYCLE JOUR / NUIT PLEINE LARGEUR */}
+        <div
+          className="dashboard-card bracket full-width"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span className="label">Cycle Jour / Nuit</span>
+            <span className={`status ${estJour ? 'status-ok' : 'status-off'}`}>
+              {estJour ? 'JOUR' : 'NUIT'} · {String(heureLever).padStart(2, '0')}H-{String(heureCoucher).padStart(2, '0')}H
+            </span>
           </div>
-            {/* CARTE DE REGLAGE DU CYCLE JOUR / NUIT PLEINE LARGEUR */}
-            <div
-                className="dashboard-card bracket full-width"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '14px',
-                }}
-            >
-              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'}}>
-                <span className="label">Cycle Jour / Nuit</span>
-                <span className={`status ${estJour ? 'status-ok' : 'status-off'}`}>
-                {estJour ? 'JOUR' : 'NUIT'} · {String(heureLever).padStart(2, '0')}H-{String(heureCoucher).padStart(2, '0')}H
-              </span>
-              </div>
 
-              <form
-                  onSubmit={handleSaveCycle}
+          <form
+            onSubmit={handleSaveCycle}
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: '14px',
+              width: '100%',
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(120px, 180px))',
+                gap: '12px',
+                flex: '1 1 260px',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <label
+                  htmlFor="heure-lever"
+                  style={{ fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em' }}
+                >
+                  LEVER (0-23H)
+                </label>
+                <input
+                  id="heure-lever"
+                  type="number"
+                  min="0"
+                  max="23"
+                  disabled={!canEdit}
+                  value={heureLever}
+                  onChange={(e) => setHeureLever(Number(e.target.value))}
                   style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'flex-end',
-                    justifyContent: 'space-between',
-                    gap: '14px',
                     width: '100%',
+                    padding: '8px 10px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    color: 'var(--text)',
+                    textAlign: 'center',
+                    fontWeight: 600,
                   }}
-              >
-                <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, minmax(120px, 180px))',
-                      gap: '12px',
-                      flex: '1 1 260px',
-                    }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <label
+                  htmlFor="heure-coucher"
+                  style={{ fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em' }}
                 >
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label
-                        htmlFor="heure-lever"
-                        style={{fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em'}}
-                    >
-                      LEVER (0-23H)
-                    </label>
-                    <input
-                        id="heure-lever"
-                        type="number"
-                        min="0"
-                        max="23"
-                        disabled={!canEdit}
-                        value={heureLever}
-                        onChange={(e) => setHeureLever(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '4px',
-                          color: 'var(--text)',
-                          textAlign: 'center',
-                          fontWeight: 600,
-                        }}
-                    />
-                  </div>
-
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
-                    <label
-                        htmlFor="heure-coucher"
-                        style={{fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em'}}
-                    >
-                      COUCHER (0-23H)
-                    </label>
-                    <input
-                        id="heure-coucher"
-                        type="number"
-                        min="0"
-                        max="23"
-                        disabled={!canEdit}
-                        value={heureCoucher}
-                        onChange={(e) => setHeureCoucher(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '4px',
-                          color: 'var(--text)',
-                          textAlign: 'center',
-                          fontWeight: 600,
-                        }}
-                    />
-                  </div>
-                </div>
-
-                <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '12px',
-                      flex: '1 1 220px',
-                    }}
-                >
-                  {paramMessage ? (
-                      <span
-                          style={{
-                            fontSize: '0.75rem',
-                            color: paramMessage.includes('succès') ? '#22c55e' : '#ef4444',
-                          }}
-                      >
-                    {paramMessage}
-                  </span>
-                  ) : (
-                      <span style={{fontSize: '0.72rem', color: 'var(--text-muted)'}}>
-                    {canEdit ? 'Plage horaire active' : 'Lecture seule'}
-                  </span>
-                  )}
-
-                  <button
-                      type="submit"
-                      disabled={!canEdit}
-                      style={{
-                        padding: '8px 16px',
-                        background: 'var(--surface)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text)',
-                        borderRadius: '4px',
-                        cursor: canEdit ? 'pointer' : 'not-allowed',
-                        opacity: canEdit ? 1 : 0.6,
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                      }}
-                  >
-                    Enregistrer
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div className="climate-chart">
-              <div className="chart-header">
-                <div className="chart-title-group">
-                  <h2>
-                    <span className="chart-live-dot"/>
-                    Historique des données
-                  </h2>
-                  <p className="chart-description">Relevés en temps réel du vivarium</p>
-                </div>
-
-                <div className="chart-count">
-                  <span className="chart-count-value">{donneesGraphique.length}</span>
-                  <span className="chart-count-label">RELEVÉS</span>
-                </div>
-              </div>
-
-              <div className="chart-toolbar">
-                <span className="chart-period-label">PÉRIODE DE SUIVI</span>
-                <div className="chart-period-buttons">
-                  <button
-                      className={periode === '24h' ? 'active' : ''}
-                      onClick={() => setPeriode('24h')}
-                  >
-                    Dernières 24 heures
-                  </button>
-
-                  <button
-                      className={periode === 'week' ? 'active' : ''}
-                      onClick={() => setPeriode('week')}
-                  >
-                    7 derniers jours
-                  </button>
-                </div>
-              </div>
-
-              <div className="chart-container">
-                {donneesGraphique.length === 0 ? (
-                    <div className="chart-empty">
-                      <span className="chart-empty-icon">⤺</span>
-                      <strong>Aucune donnée disponible</strong>
-                      <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
-                    </div>
-                ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={donneesGraphique}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)"/>
-                        <XAxis
-                            dataKey="date"
-                            type="number"
-                            scale="time"
-                            domain={['dataMin', 'dataMax']}
-                            stroke="var(--text-muted)"
-                            tickFormatter={(timestamp) =>
-                                new Date(timestamp).toLocaleString('fr-BE', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                            }
-                        />
-                        <YAxis stroke="var(--text-muted)"/>
-                        <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'var(--surface)',
-                              borderColor: 'var(--border)',
-                              color: 'var(--text)',
-                            }}
-                            labelFormatter={(timestamp) =>
-                                new Date(Number(timestamp)).toLocaleString('fr-BE')
-                            }
-                        />
-                        <Legend/>
-                        <Line
-                            type="monotone"
-                            dataKey="temperature"
-                            name="Température (°C)"
-                            stroke="var(--live)"
-                            connectNulls
-                            dot={false}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="humidite"
-                            name="Humidité (%)"
-                            stroke="#65aaff"
-                            connectNulls
-                            dot={false}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="luminosite"
-                            name="Luminosité (%)"
-                            stroke="#d4a6ff"
-                            connectNulls
-                            dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                )}
-              </div>
-
-              <div className="chart-footer">
-              <span>
-                <span className="chart-footer-dot"/>
-                FLUX DE DONNÉES ACTIF
-              </span>
-                <span>RÉFRECHISSEMENT AUTO (3S)</span>
+                  COUCHER (0-23H)
+                </label>
+                <input
+                  id="heure-coucher"
+                  type="number"
+                  min="0"
+                  max="23"
+                  disabled={!canEdit}
+                  value={heureCoucher}
+                  onChange={(e) => setHeureCoucher(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px',
+                    color: 'var(--text)',
+                    textAlign: 'center',
+                    fontWeight: 600,
+                  }}
+                />
               </div>
             </div>
 
-            <SuiviMue canEdit={canEdit}/>
-
-            {/* HISTORIQUE DES VIDÉOS */}
             <div
-                className="dashboard-card bracket full-width"
-                style={{marginTop: '20px'}}
-            >
-              <div style={{
+              style={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '15px'
-              }}>
-              <span className="label">
-                Historique des clips ({images.length}/10)
-              </span>
-
-                <span style={{
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)'
-                }}>
-                10 derniers clips enregistrés
-              </span>
-              </div>
-
-              {images.length === 0 ? (
-                  <span className="empty-state">
-                Aucun clip disponible
-              </span>
+                justifyContent: 'flex-end',
+                gap: '12px',
+                flex: '1 1 220px',
+              }}
+            >
+              {paramMessage ? (
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: paramMessage.includes('succès') ? '#22c55e' : '#ef4444',
+                  }}
+                >
+                  {paramMessage}
+                </span>
               ) : (
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                    gap: '15px',
-                    maxHeight: '450px',
-                    overflowY: 'auto',
-                    width: '100%'
-                  }}>
-                    {images.map((clip) => {
-                      const videoUrl = `${SUPABASE_STORAGE_URL}/${clip.chemin_fichier}`;
-
-                      return (
-                          <div
-                              key={clip.id}
-                              style={{
-                                backgroundColor: 'rgba(255,255,255,0.04)',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border)',
-                                overflow: 'hidden'
-                              }}
-                          >
-                            <video
-                                controls
-                                preload="metadata"
-                                playsInline
-                                src={videoUrl}
-                                onError={(e) => {
-                                  console.error(
-                                      "Erreur lecture vidéo :",
-                                      clip.nom_fichier,
-                                      e.currentTarget.error
-                                  );
-                                }}
-                                style={{
-                                  display: 'block',
-                                  width: '100%',
-                                  height: '170px',
-                                  objectFit: 'contain',
-                                  backgroundColor: '#000'
-                                }}
-                            />
-
-                            <div style={{padding: '10px'}}>
-                              <div style={{
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                                color: 'var(--text)'
-                              }}>
-                                {clip.nom_fichier}
-                              </div>
-
-                              <div style={{
-                                fontSize: '0.75rem',
-                                color: 'var(--text-muted)',
-                                marginTop: '4px'
-                              }}>
-                                {new Date(clip.date_creation).toLocaleString('fr-BE')}
-                              </div>
-                            </div>
-                          </div>
-                      );
-                    })}
-                  </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {canEdit ? 'Plage horaire active' : 'Lecture seule'}
+                </span>
               )}
+
+              <button
+                type="submit"
+                disabled={!canEdit}
+                style={{
+                  padding: '8px 16px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  borderRadius: '4px',
+                  cursor: canEdit ? 'pointer' : 'not-allowed',
+                  opacity: canEdit ? 1 : 0.6,
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                }}
+              >
+                Enregistrer
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="climate-chart">
+          <div className="chart-header">
+            <div className="chart-title-group">
+              <h2>
+                <span className="chart-live-dot" />
+                Historique des données
+              </h2>
+              <p className="chart-description">Relevés en temps réel du vivarium</p>
             </div>
 
+            <div className="chart-count">
+              <span className="chart-count-value">{donneesGraphique.length}</span>
+              <span className="chart-count-label">RELEVÉS</span>
+            </div>
+          </div>
+
+          <div className="chart-toolbar">
+            <span className="chart-period-label">PÉRIODE DE SUIVI</span>
+            <div className="chart-period-buttons">
+              <button
+                className={periode === '24h' ? 'active' : ''}
+                onClick={() => setPeriode('24h')}
+              >
+                Dernières 24 heures
+              </button>
+
+              <button
+                className={periode === 'week' ? 'active' : ''}
+                onClick={() => setPeriode('week')}
+              >
+                7 derniers jours
+              </button>
+            </div>
+          </div>
+
+          <div className="chart-container">
+            {donneesGraphique.length === 0 ? (
+              <div className="chart-empty">
+                <span className="chart-empty-icon">⤺</span>
+                <strong>Aucune donnée disponible</strong>
+                <span>En attente de réception des mesures des capteurs pour la période sélectionnée.</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={donneesGraphique}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="date"
+                    type="number"
+                    scale="time"
+                    domain={['dataMin', 'dataMax']}
+                    stroke="var(--text-muted)"
+                    tickFormatter={(timestamp) =>
+                      new Date(timestamp).toLocaleString('fr-BE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    }
+                  />
+                  <YAxis stroke="var(--text-muted)" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--surface)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--text)',
+                    }}
+                    labelFormatter={(timestamp) =>
+                      new Date(Number(timestamp)).toLocaleString('fr-BE')
+                    }
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="temperature"
+                    name="Température (°C)"
+                    stroke="var(--live)"
+                    connectNulls
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="humidite"
+                    name="Humidité (%)"
+                    stroke="#65aaff"
+                    connectNulls
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="luminosite"
+                    name="Luminosité (%)"
+                    stroke="#d4a6ff"
+                    connectNulls
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="chart-footer">
+            <span>
+              <span className="chart-footer-dot" />
+              FLUX DE DONNÉES ACTIF
+            </span>
+            <span>RÉFRECHISSEMENT AUTO (3S)</span>
           </div>
         </div>
-      </>
-      );
-      };
 
-      export default Dashboard;
+        <SuiviMue canEdit={canEdit} />
+
+        {/* HISTORIQUE DES VIDÉOS */}
+        <div
+          className="dashboard-card bracket full-width"
+          style={{ marginTop: '20px' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '15px',
+            }}
+          >
+            <span className="label">
+              Historique des clips ({images.length}/10)
+            </span>
+
+            <span
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              10 derniers clips enregistrés
+            </span>
+          </div>
+
+          {images.length === 0 ? (
+            <span className="empty-state">
+              Aucun clip disponible
+            </span>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                gap: '15px',
+                maxHeight: '450px',
+                overflowY: 'auto',
+                width: '100%',
+              }}
+            >
+              {images.map((clip) => {
+                const videoUrl = `${SUPABASE_STORAGE_URL}/${clip.chemin_fichier}`;
+
+                return (
+                  <div
+                    key={clip.id}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <video
+                      controls
+                      preload="metadata"
+                      playsInline
+                      src={videoUrl}
+                      onError={(e) => {
+                        console.error(
+                          "Erreur lecture vidéo :",
+                          clip.nom_fichier,
+                          e.currentTarget.error
+                        );
+                      }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        height: '170px',
+                        objectFit: 'contain',
+                        backgroundColor: '#000',
+                      }}
+                    />
+
+                    <div style={{ padding: '10px' }}>
+                      <div
+                        style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: 'var(--text)',
+                        }}
+                      >
+                        {clip.nom_fichier}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '4px',
+                        }}
+                      >
+                        {new Date(clip.date_creation).toLocaleString('fr-BE')}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
