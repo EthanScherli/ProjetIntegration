@@ -335,6 +335,7 @@ const Dashboard = () => {
                 onError={() => setCamError(true)}
                 onLoad={() => setCamError(false)}
             />
+          </div>
             {/* CARTE DE REGLAGE DU CYCLE JOUR / NUIT PLEINE LARGEUR */}
             <div
                 className="dashboard-card bracket full-width"
