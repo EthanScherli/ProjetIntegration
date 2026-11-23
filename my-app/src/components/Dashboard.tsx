@@ -31,13 +31,33 @@ interface ImageHistorique {
   id_Ut: string;
 }
 
-const PLAGES = {
-  temperature: { min: 24, max: 30, echelle: [0, 40] },
-  humidite: { min: 60, max: 80, echelle: [0, 100] },
-  luminosite: { min: 20, max: 90, echelle: [0, 100] },
-};
+interface Plage {
+  min: number;
+  max: number;
+  echelle: [number, number];
+  poids: number;
+}
 
-type Plage = (typeof PLAGES)[keyof typeof PLAGES];
+const getPlagesActuelles = (estJour: boolean): Record<'temperature' | 'humidite' | 'luminosite', Plage> => ({
+  temperature: {
+    min: estJour ? 25 : 22,
+    max: estJour ? 30 : 26,
+    echelle: [0, 40],
+    poids: 0.5,
+  },
+  humidite: {
+    min: 60,
+    max: 80,
+    echelle: [0, 100],
+    poids: 0.35,
+  },
+  luminosite: {
+    min: estJour ? 20 : 0,
+    max: estJour ? 85 : 10,
+    echelle: [0, 100],
+    poids: 0.15,
+  },
+});
 
 const SEGMENTS = 10;
 
@@ -232,18 +252,32 @@ const Dashboard = () => {
     return <AccountManager onClose={() => setShowAccount(false)} />;
   }
 
+  const heureActuelle = new Date().getHours();
+  const estJour =
+    heureLever < heureCoucher
+      ? heureActuelle >= heureLever && heureActuelle < heureCoucher
+      : heureActuelle >= heureLever || heureActuelle < heureCoucher;
+
+  const plagesActuelles = getPlagesActuelles(estJour);
+
   const capteursTries = [...capteurs]
     .filter((c) => c.created_at && !isNaN(new Date(c.created_at).getTime()))
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   const derniere = capteursTries.length > 0 ? capteursTries[capteursTries.length - 1] : undefined;
 
-  const scores = (Object.keys(PLAGES) as (keyof typeof PLAGES)[])
-    .filter((cle) => derniere?.[cle] != null)
-    .map((cle) => scoreConfort(derniere![cle]!, PLAGES[cle]));
+  const mesuresActives = (Object.keys(plagesActuelles) as (keyof typeof plagesActuelles)[])
+    .filter((cle) => derniere?.[cle] != null);
 
-  const confort = scores.length
-    ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+  const poidsTotal = mesuresActives.reduce((acc, cle) => acc + plagesActuelles[cle].poids, 0);
+
+  const confort = mesuresActives.length > 0
+    ? Math.round(
+        mesuresActives.reduce(
+          (acc, cle) => acc + scoreConfort(derniere![cle]!, plagesActuelles[cle]) * plagesActuelles[cle].poids,
+          0
+        ) / poidsTotal
+      )
     : null;
 
   const donneesGraphique = capteursTries.map((c) => ({
@@ -252,12 +286,6 @@ const Dashboard = () => {
     humidite: c.humidite,
     luminosite: c.luminosite,
   }));
-
-  const heureActuelle = new Date().getHours();
-  const estJour =
-    heureLever < heureCoucher
-      ? heureActuelle >= heureLever && heureActuelle < heureCoucher
-      : heureActuelle >= heureLever || heureActuelle < heureCoucher;
 
   return (
     <>
@@ -285,21 +313,21 @@ const Dashboard = () => {
             label="Température"
             unite="°C"
             valeur={derniere?.temperature}
-            plage={PLAGES.temperature}
+            plage={plagesActuelles.temperature}
           />
 
           <SensorCard
             label="Humidité"
             unite="%"
             valeur={derniere?.humidite}
-            plage={PLAGES.humidite}
+            plage={plagesActuelles.humidite}
           />
 
           <SensorCard
             label="Luminosité"
             unite="%"
             valeur={derniere?.luminosite}
-            plage={PLAGES.luminosite}
+            plage={plagesActuelles.luminosite}
           />
 
           <div
