@@ -16,6 +16,18 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
   const [historique, setHistorique] = useState<Mue[]>([]);
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState('');
+  const [afficherAjoutManuel, setAfficherAjoutManuel] = useState(false);
+  const [dateDebutManuel, setDateDebutManuel] = useState('');
+  const [dateFinManuel, setDateFinManuel] = useState('');
+
+  const formaterDateHeure = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${d.toLocaleDateString('fr-FR')} à ${d.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })}`;
+  };
 
   const chargerMueActive = async () => {
     setChargement(true);
@@ -93,6 +105,35 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
     }
   };
 
+  const ajouterMueManuelle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dateDebutManuel || !dateFinManuel) return;
+    setChargement(true);
+    setErreur('');
+    try {
+      const reponse = await fetch('/api/mue/ajouter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date_debut: new Date(dateDebutManuel).toISOString(),
+          date_fin: new Date(dateFinManuel).toISOString(),
+        }),
+      });
+      if (!reponse.ok) {
+        const dataErr = await reponse.json();
+        throw new Error(dataErr.error || "Impossible d'ajouter la mue");
+      }
+      setDateDebutManuel('');
+      setDateFinManuel('');
+      setAfficherAjoutManuel(false);
+      await chargerHistorique();
+    } catch (err: any) {
+      setErreur(err.message || "Impossible d'ajouter la mue");
+    } finally {
+      setChargement(false);
+    }
+  };
+
   // Calcul du délai moyen entre 2 mues
   const calculerDelaiMoyen = (): number | null => {
     const muesTerminees = historique
@@ -130,25 +171,69 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
         <div>
           {mueActive ? (
             <span className="status status-warn">
-              Mue en cours depuis le {new Date(mueActive.date_debut).toLocaleDateString('fr-FR')} à {new Date(mueActive.date_debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              Mue en cours depuis le {formaterDateHeure(mueActive.date_debut)}
             </span>
           ) : (
             <span className="status status-ok">Aucune mue en cours</span>
           )}
         </div>
 
-        <button
-          className="account-btn mue-btn"
-          disabled={chargement || !canEdit}
-          onClick={mueActive ? terminerMue : demarrerMue}
-          style={{
-            opacity: canEdit ? 1 : 0.5,
-            cursor: canEdit ? (chargement ? 'wait' : 'pointer') : 'not-allowed',
-          }}
-        >
-          {chargement ? 'Chargement...' : mueActive ? 'Terminer la mue' : 'Déclarer une mue'}
-        </button>
+        <div className="mue-actions">
+          <button
+            className="account-btn mue-btn"
+            disabled={chargement || !canEdit}
+            onClick={mueActive ? terminerMue : demarrerMue}
+          >
+            {chargement ? 'Chargement...' : mueActive ? 'Terminer la mue' : 'Déclarer une mue'}
+          </button>
+
+          <button
+            type="button"
+            className="account-btn mue-btn"
+            disabled={chargement || !canEdit}
+            onClick={() => {
+              setErreur('');
+              setAfficherAjoutManuel(!afficherAjoutManuel);
+            }}
+          >
+            {afficherAjoutManuel ? 'Annuler' : '+ Ajouter manuellement'}
+          </button>
+        </div>
       </div>
+
+      {afficherAjoutManuel && (
+        <form className="mue-form" onSubmit={ajouterMueManuelle}>
+          <label>
+            <span>Début :</span>
+            <input
+              type="datetime-local"
+              step="1"
+              value={dateDebutManuel}
+              onChange={(e) => setDateDebutManuel(e.target.value)}
+              required
+            />
+          </label>
+
+          <label>
+            <span>Fin :</span>
+            <input
+              type="datetime-local"
+              step="1"
+              value={dateFinManuel}
+              onChange={(e) => setDateFinManuel(e.target.value)}
+              required
+            />
+          </label>
+
+          <button
+            type="submit"
+            className="account-btn mue-btn"
+            disabled={chargement || !canEdit}
+          >
+            Enregistrer
+          </button>
+        </form>
+      )}
 
       <div className="mue-stat-card">
         <span className="mue-stat-label">Fréquence moyenne entre 2 mues :</span>
@@ -170,8 +255,8 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
         ) : (
           <ul className="mue-history-list">
             {historique.map((mue) => {
-              const dateDebut = new Date(mue.date_debut).toLocaleDateString('fr-FR');
-              const dateFin = mue.date_fin ? new Date(mue.date_fin).toLocaleDateString('fr-FR') : null;
+              const dateDebut = formaterDateHeure(mue.date_debut);
+              const dateFin = mue.date_fin ? formaterDateHeure(mue.date_fin) : null;
 
               const dureeJours = mue.date_fin
                 ? Math.ceil((new Date(mue.date_fin).getTime() - new Date(mue.date_debut).getTime()) / (1000 * 60 * 60 * 24))

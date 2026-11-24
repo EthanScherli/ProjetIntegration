@@ -722,7 +722,6 @@
   background-color: var(--surface-2, rgba(255, 255, 255, 0.06));
   border-color: var(--live);
   color: var(--live);
-  box-shadow: 0 0 14px rgba(132, 204, 22, 0.18);
   transform: translateY(-1px);
 }
 
@@ -752,4 +751,45 @@
   .top-bar {
     justify-content: center;
   }
+}
+.mue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.account-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mue-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: flex-end;
+}
+
+.mue-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.mue-form input {
+  padding: 0.55rem 0.75rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  color-scheme: dark;
+}
+
+.mue-form input:focus {
+  outline: none;
+  border-color: var(--live);
 }
