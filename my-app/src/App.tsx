@@ -16,6 +16,7 @@ interface CurrentUser {
 function App() {
   const [currentView, setCurrentView] = useState('login');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [enLigne, setEnLigne] = useState(navigator.onLine);
 
   const loadCurrentUser = async () => {
     try {
@@ -31,8 +32,19 @@ function App() {
     loadCurrentUser();
   }, []);
 
+  useEffect(() => {
+    const majConnexion = () => setEnLigne(navigator.onLine);
+    window.addEventListener('online', majConnexion);
+    window.addEventListener('offline', majConnexion);
+    return () => {
+      window.removeEventListener('online', majConnexion);
+      window.removeEventListener('offline', majConnexion);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await fetch('/api/logout', { method: 'POST' }).catch(() => {});
+    if ('caches' in window) await caches.delete('api');
     setCurrentUser(null);
     setCurrentView('login');
   };
@@ -40,6 +52,11 @@ function App() {
   return (
     <div className="app-wrapper">
       <Jungle />
+      {!enLigne && (
+        <div className="offline-banner">
+          <span className="rec-dot" /> Hors ligne · dernières données enregistrées
+        </div>
+      )}
       <div className="screen" key={currentView}>
       {currentView === 'login' && (
         <Login

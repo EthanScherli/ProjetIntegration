@@ -793,3 +793,22 @@
   outline: none;
   border-color: var(--live);
 }
+.offline-banner {
+  position: sticky;
+  top: 8px;
+  z-index: 10;
+  margin-bottom: 12px;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  color: var(--warn);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  animation: enter 0.3s ease-out both;
+}
+
+.offline-banner .rec-dot {
+  background: var(--warn);
+}
