@@ -537,6 +537,38 @@ app.get("/api/mue/historique", async (req, res) => {
   }
 });
 
+app.post("/api/mue/ajouter", async (req, res) => {
+  const userId = getSessionUserId(req);
+  if (!userId) return res.status(401).json({ error: "Non autorisé" });
+
+  const { date_debut, date_fin } = req.body ?? {};
+  if (!date_debut || !date_fin) {
+    return res.status(400).json({ error: "Les dates de début et de fin sont requises." });
+  }
+
+  const debut = new Date(date_debut);
+  const fin = new Date(date_fin);
+
+  if (isNaN(debut.getTime()) || isNaN(fin.getTime())) {
+    return res.status(400).json({ error: "Format de date invalide." });
+  }
+
+  if (fin <= debut) {
+    return res.status(400).json({ error: "La date de fin doit être postérieure à la date de début." });
+  }
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO "Mue" ("date_debut", "date_fin", "statut", "id_Ut") VALUES ($1, $2, \'TERMINEE\', $3) RETURNING *',
+      [debut.toISOString(), fin.toISOString(), userId]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors de l'ajout manuel de la mue." });
+  }
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API démarrée sur le port ${PORT}`);
 });
