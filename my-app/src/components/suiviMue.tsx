@@ -72,7 +72,7 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
       const reponse = await fetch('/api/mue/demarrer', { method: 'POST' });
       if (!reponse.ok) {
         // 2. Affiche le message d'erreur exact envoyé par le backend Express
-        const dataErr = await reponse.json();
+        const dataErr = await reponse.json().catch(() => ({}));
         throw new Error(dataErr.error || 'Impossible de démarrer la mue');
       }
       await chargerMueActive();
@@ -94,7 +94,7 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
         body: JSON.stringify({ id_mue: mueActive.id_mue }),
       });
       if (!reponse.ok) {
-        const dataErr = await reponse.json();
+        const dataErr = await reponse.json().catch(() => ({}));
         throw new Error(dataErr.error || 'Impossible de terminer la mue');
       }
       await chargerMueActive();
@@ -120,7 +120,7 @@ export const SuiviMue = ({ canEdit = true }: SuiviMueProps) => {
         }),
       });
       if (!reponse.ok) {
-        const dataErr = await reponse.json();
+        const dataErr = await reponse.json().catch(() => ({}));
         throw new Error(dataErr.error || "Impossible d'ajouter la mue");
       }
       setDateDebutManuel('');
