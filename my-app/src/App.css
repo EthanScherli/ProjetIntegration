@@ -806,7 +806,21 @@
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   animation: enter 0.3s ease-out both;
+}
+
+.offline-banner strong {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.offline-banner span:not(.rec-dot) {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
 }
 
 .offline-banner .rec-dot {

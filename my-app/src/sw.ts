@@ -17,7 +17,7 @@ cleanupOutdatedCaches()
 registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/^\/api/] }))
 
 registerRoute(
-  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/'),
+  ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/') && url.pathname !== '/api/health',
   new NetworkFirst({
     cacheName: 'api',
     networkTimeoutSeconds: 5,

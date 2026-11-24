@@ -33,12 +33,24 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const majConnexion = () => setEnLigne(navigator.onLine);
-    window.addEventListener('online', majConnexion);
-    window.addEventListener('offline', majConnexion);
+    const verifierConnexion = async () => {
+      if (!navigator.onLine) return setEnLigne(false);
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+        setEnLigne(response.ok);
+      } catch {
+        setEnLigne(false);
+      }
+    };
+
+    verifierConnexion();
+    const interval = setInterval(verifierConnexion, 10000);
+    window.addEventListener('online', verifierConnexion);
+    window.addEventListener('offline', verifierConnexion);
     return () => {
-      window.removeEventListener('online', majConnexion);
-      window.removeEventListener('offline', majConnexion);
+      clearInterval(interval);
+      window.removeEventListener('online', verifierConnexion);
+      window.removeEventListener('offline', verifierConnexion);
     };
   }, []);
 
@@ -54,7 +66,8 @@ function App() {
       <Jungle />
       {!enLigne && (
         <div className="offline-banner">
-          <span className="rec-dot" /> Hors ligne · dernières données enregistrées
+          <strong><span className="rec-dot" /> Site hors ligne</strong>
+          <span>Pas de connexion internet · affichage des dernières données enregistrées</span>
         </div>
       )}
       <div className="screen" key={currentView}>
